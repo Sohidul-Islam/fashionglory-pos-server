@@ -4,7 +4,6 @@ const express = require("express");
 const cors = require("cors")
 const app = express();
 const path = require('path');
-const sequelize = require("./db");
 const authRoutes = require('./routes/authRoutes');
 const errorHandler = require('./middleware/errorHandler');
 const requestHandler = require('./utils/requestHandler');
@@ -29,11 +28,7 @@ app.get("/", function (req, res) {
 
 app.use(errorHandler);
 
-sequelize.authenticate().then(() => {
-    console.log('Connection has been established successfully.');
-}).catch((error) => {
-    console.error('Unable to connect to the database: ', error);
-});
+
 
 app.listen(port, () => console.log(`Server ready on port ${port}.`));
 
