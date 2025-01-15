@@ -1,0 +1,77 @@
+const Sequelize = require("sequelize");
+const sequelize = require("../db");
+
+const User = sequelize.define(
+    "User", // Model name is singular to follow Sequelize conventions
+    {
+        id: {
+            type: Sequelize.INTEGER,
+            autoIncrement: true,
+            primaryKey: true,
+        },
+        fullName: {
+            type: Sequelize.STRING,
+            allowNull: false,
+            comment: "Name of the user or shop owner",
+        },
+        email: {
+            type: Sequelize.STRING(100),
+            allowNull: false,
+            unique: true,
+            validate: {
+                isEmail: true,
+            },
+        },
+        phoneNumber: {
+            type: Sequelize.STRING(15),
+            allowNull: false,
+            unique: true,
+            comment: "Phone number of the user",
+        },
+        location: {
+            type: Sequelize.STRING,
+            allowNull: false,
+            comment: "User's location",
+        },
+        businessName: {
+            type: Sequelize.STRING,
+            allowNull: false,
+            comment: "Name of the user's business",
+        },
+        businessType: {
+            type: Sequelize.STRING,
+            allowNull: false,
+            comment: "Type of business the user runs",
+        },
+        password: {
+            type: Sequelize.STRING,
+            allowNull: false,
+            comment: "Hashed password of the user",
+        },
+        accountStatus: {
+            type: Sequelize.ENUM("active", "inactive"),
+            allowNull: false,
+            defaultValue: "inactive",
+            comment: "Status of the user account",
+        },
+        isVerified: {
+            type: Sequelize.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            comment: "Indicates if the user is email verified",
+        },
+        verificationToken: {
+            type: Sequelize.STRING,
+            allowNull: true,
+            comment: "Token for email verification",
+        },
+        isLoggedIn: {
+            type: Sequelize.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            comment: "Tracks if the user is currently logged in",
+        },
+    }
+);
+
+module.exports = User;
