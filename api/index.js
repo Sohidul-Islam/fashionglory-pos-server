@@ -13,6 +13,9 @@ app.use(express.json());
 
 app.use(express.static('public'));
 
+
+// here we add router
+
 // app.use("/api", authRoute);
 
 app.get("/", function (req, res) {
