@@ -17,7 +17,7 @@ const User = sequelize.define(
         email: {
             type: Sequelize.STRING(100),
             allowNull: false,
-            unique: true,
+            unique: "email",
             validate: {
                 isEmail: true,
             },
@@ -25,7 +25,7 @@ const User = sequelize.define(
         phoneNumber: {
             type: Sequelize.STRING(15),
             allowNull: false,
-            unique: true,
+            unique: "phoneNumber",
             comment: "Phone number of the user",
         },
         location: {
