@@ -2,15 +2,14 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { User } = require('../entity');
 
-
 const AuthService = {
     async register(userData) {
         try {
             const hashedPassword = await bcrypt.hash(userData.password, 10);
             const user = await User.create({ ...userData, password: hashedPassword });
-            return { status: 201, data: user };
+            return { status: true, message: "Registration successful", data: user };
         } catch (error) {
-            return { status: 400, data: { message: error.message, error: 'Registration failed' } };
+            return { status: false, message: "Registration failed", data: null, error };
         }
     },
 
@@ -18,18 +17,18 @@ const AuthService = {
         try {
             const user = await User.findOne({ where: { email } });
             if (!user) {
-                return { status: 404, data: { error: 'User not found' } };
+                return { status: false, message: "User not found", data: null };
             }
 
             const isPasswordValid = await bcrypt.compare(password, user.password);
             if (!isPasswordValid) {
-                return { status: 401, data: { error: 'Invalid password' } };
+                return { status: false, message: "Invalid Password", data: null };
             }
 
-            const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '15Day' });
-            return { status: 200, data: { user, token } };
+            const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '15d' });
+            return { status: true, message: "Login successful", data: { user, token } };
         } catch (error) {
-            return { status: 400, data: { error: 'Login failed' } };
+            return { status: false, message: "Login failed", data: null, error };
         }
     },
 
@@ -37,12 +36,12 @@ const AuthService = {
         try {
             const user = await User.findOne({ where: { email } });
             if (!user) {
-                return { status: 404, data: { error: 'User not found' } };
+                return { status: false, message: "User not found", data: null };
             }
 
-            return { status: 200, data: { user } };
+            return { status: true, message: "Profile retrieved successfully", data: user };
         } catch (error) {
-            return { status: 400, data: { error: 'Login failed' } };
+            return { status: false, message: "Failed to retrieve profile", data: null, error };
         }
     },
 
@@ -50,63 +49,55 @@ const AuthService = {
         try {
             const user = await User.findByPk(userId);
             if (!user) {
-                return { status: 404, data: { error: 'User not found' } };
+                return { status: false, message: "User not found", data: null, };
             }
 
             await user.update(updateData);
-            return { status: 200, data: user };
+            return { status: true, message: "Profile updated successfully", data: user };
         } catch (error) {
-            return { status: 400, data: { error: 'Update profile failed' } };
+            return { status: false, message: "Failed to update profile", data: null, error };
         }
     },
+
     async authenticate(req, res, next) {
         try {
-            // Extract the token from headers or query parameters
             const token = req.headers.authorization?.split(" ")[1] || req.query.token;
 
             if (!token) {
-                return res.status(401).json({ message: "No token provided" });
+                return res.status(401).json({ status: false, message: "No token provided", data: null });
             }
 
-            // Decode and verify the token
             let decoded;
             try {
                 decoded = jwt.verify(token, process.env.JWT_SECRET);
             } catch (error) {
-                console.error("Invalid token:", error.message);
-                return res.status(401).json({ message: "Invalid or expired token" });
+                return res.status(401).json({ status: false, message: "Invalid or expired token", data: null });
             }
 
-            console.log({ decoded, token, JWT_SECRET: process.env.JWT_SECRET });
-
-            // Find the user by the ID in the decoded token
             const user = await User.findByPk(decoded.id);
             if (!user) {
-                return res.status(404).json({ message: "User not found" });
+                return res.status(404).json({ status: false, message: "User not found", data: null });
             }
 
-            // Attach the user to the request object for further use
             req.user = user;
-
-            // Continue to the next middleware or route handler
             next();
         } catch (error) {
-            console.error("Authentication failed:", error.message);
-            res.status(500).json({ message: "Authentication failed" });
+            return res.status(500).json({ status: false, message: "Authentication failed", data: null, error });
         }
     },
+
     async resetPassword(email, newPassword) {
         try {
             const user = await User.findOne({ where: { email } });
             if (!user) {
-                return { status: 404, data: { error: 'User not found' } };
+                return { status: false, message: "User not found", data: null };
             }
 
             const hashedPassword = await bcrypt.hash(newPassword, 10);
             await user.update({ password: hashedPassword });
-            return { status: 200, data: user };
+            return { status: true, message: "Password reset successful", data: user };
         } catch (error) {
-            return { status: 400, data: { error: 'Password reset failed' } };
+            return { status: false, message: "Password reset failed", data: null };
         }
     }
 };

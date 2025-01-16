@@ -23,7 +23,7 @@ const User = sequelize.define(
             },
         },
         phoneNumber: {
-            type: Sequelize.STRING(15),
+            type: Sequelize.STRING(50),
             allowNull: false,
             unique: "phoneNumber",
             comment: "Phone number of the user",
