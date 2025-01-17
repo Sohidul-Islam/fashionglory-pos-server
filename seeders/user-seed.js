@@ -66,3 +66,7 @@ module.exports = {
 // 2. npx sequelize-cli db:migrate
 // 3. npx sequelize-cli migration:generate --name create-user
 // 4. npx sequelize-cli db:seed:all
+//npx sequelize-cli db:seed --seed 20240320000001-demo-categories.js
+//npx sequelize-cli db:seed --seed 20240320000002-demo-brands.js
+//npx sequelize-cli db:seed --seed 20240320000003-demo-units.js
+//npx sequelize-cli db:seed --seed 20240320000004-demo-products.js
