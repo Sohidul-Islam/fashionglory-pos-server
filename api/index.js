@@ -12,6 +12,7 @@ const categoryRoutes = require('./routes/categoryRoutes');
 const brandRoutes = require('./routes/brandRoutes');
 const unitRoutes = require('./routes/unitRoutes');
 const imageUploadRoute = require('./routes/imageUploadRoute');
+const orderRoutes = require('./routes/OrderRoute');
 const port = process.env.SERVER_PORT || 3000
 
 app.use(cors())
@@ -28,6 +29,7 @@ app.use("/api/categories", requestHandler(null, categoryRoutes));
 app.use("/api/brands", requestHandler(null, brandRoutes));
 app.use("/api/units", requestHandler(null, unitRoutes));
 app.use("/api/images", requestHandler(null, imageUploadRoute));
+app.use("/api/orders", requestHandler(null, orderRoutes));
 
 app.get("/", function (req, res) {
     res.send("welcome pos solution family!");

@@ -3,6 +3,8 @@ const Product = require('./Product');
 const Category = require('./Category');
 const Brand = require('./Brand');
 const Unit = require('./Unit');
+const Order = require('./Order');
+
 
 // User Associations
 User.hasMany(Product);
@@ -16,6 +18,7 @@ Product.belongsTo(Category);
 Product.belongsTo(Brand);
 Product.belongsTo(Unit);
 
+
 // Category Associations
 Category.belongsTo(User);
 Category.hasMany(Product);
@@ -28,10 +31,15 @@ Brand.hasMany(Product);
 Unit.belongsTo(User);
 Unit.hasMany(Product);
 
+// Order Associations
+Order.belongsTo(User);
+
+
 module.exports = {
     User,
     Product,
     Category,
     Brand,
-    Unit
+    Unit,
+    Order
 };
