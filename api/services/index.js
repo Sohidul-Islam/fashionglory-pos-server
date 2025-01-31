@@ -4,6 +4,9 @@ const CategoryService = require("./CategoryService");
 const BrandService = require("./BrandService");
 const UnitService = require("./UnitService");
 const OrderService = require("./orderService");
+const ColorService = require("./ColorService");
+const SizeService = require("./SizeService");
+const ProductVariantService = require("./ProductVariantService");
 
 module.exports = {
     AuthService,
@@ -11,5 +14,8 @@ module.exports = {
     CategoryService,
     BrandService,
     UnitService,
-    OrderService
+    OrderService,
+    ColorService,
+    SizeService,
+    ProductVariantService
 };

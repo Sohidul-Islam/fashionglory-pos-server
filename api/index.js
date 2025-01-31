@@ -13,6 +13,9 @@ const brandRoutes = require('./routes/brandRoutes');
 const unitRoutes = require('./routes/unitRoutes');
 const imageUploadRoute = require('./routes/imageUploadRoute');
 const orderRoutes = require('./routes/OrderRoute');
+const colorRoutes = require('./routes/colorRoutes');
+const sizeRoutes = require('./routes/sizeRoutes');
+const productVariantRoutes = require('./routes/productVariantRoutes');
 const port = process.env.SERVER_PORT || 3000
 
 app.use(cors())
@@ -30,6 +33,9 @@ app.use("/api/brands", requestHandler(null, brandRoutes));
 app.use("/api/units", requestHandler(null, unitRoutes));
 app.use("/api/images", requestHandler(null, imageUploadRoute));
 app.use("/api/orders", requestHandler(null, orderRoutes));
+app.use("/api/colors", requestHandler(null, colorRoutes));
+app.use("/api/sizes", requestHandler(null, sizeRoutes));
+app.use("/api/product-variants", requestHandler(null, productVariantRoutes));
 
 app.get("/", function (req, res) {
     res.send("welcome pos solution family!");

@@ -1,4 +1,4 @@
-const { Product, Category, Brand, Unit } = require('../entity');
+const { Product, Category, Brand, Unit, ProductVariant, Color, Size } = require('../entity');
 
 const ProductService = {
     async create(productData, userId) {
@@ -19,7 +19,14 @@ const ProductService = {
                 include: [
                     { model: Category },
                     { model: Brand },
-                    { model: Unit }
+                    { model: Unit },
+                    {
+                        model: ProductVariant,
+                        include: [
+                            { model: Color },
+                            { model: Size }
+                        ]
+                    }
                 ],
                 where: query
             });
@@ -35,7 +42,14 @@ const ProductService = {
                 include: [
                     { model: Category },
                     { model: Brand },
-                    { model: Unit }
+                    { model: Unit },
+                    {
+                        model: ProductVariant,
+                        include: [
+                            { model: Color },
+                            { model: Size }
+                        ]
+                    }
                 ]
             });
             if (!product) {
