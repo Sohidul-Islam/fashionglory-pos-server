@@ -6,7 +6,8 @@ const requestHandler = require('../utils/requestHandler');
 const router = express.Router();
 
 router.post('/', AuthService.authenticate, requestHandler(null, async (req, res) => {
-    const result = await UnitService.create(req.body);
+    const UserId = req?.user?.id || null;
+    const result = await UnitService.create({ ...req.body, UserId });
     res.status(result.status ? 201 : 400).json(result);
 }));
 

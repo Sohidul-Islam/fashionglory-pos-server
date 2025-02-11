@@ -4,9 +4,6 @@ const imageController = require('../services/ImageUploadService');
 const router = express.Router();
 
 
-// Debug to find undefined routes
-console.log('Image Controller methods:', Object.keys(imageController));
-
 // Single image upload
 router.post('/upload',
     ImageUploadHelper.getUploadMiddleware(),

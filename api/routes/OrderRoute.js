@@ -1,16 +1,17 @@
 const express = require('express');
-const { OrderService } = require('../services');
+const { OrderService, AuthService } = require('../services');
 
 
 // Router
 const router = express.Router();
 
-router.post('/', async (req, res) => {
-    const result = await OrderService.create(req.body);
+router.post('/', AuthService.authenticate, async (req, res) => {
+    const UserId = req?.user?.id || null;
+    const result = await OrderService.create({ ...req.body, UserId });
     res.status(result.status ? 201 : 400).json(result);
 });
 
-router.get('/', async (req, res) => {
+router.get('/', AuthService.authenticate, async (req, res) => {
     const result = await OrderService.getAll();
     res.status(result.status ? 200 : 400).json(result);
 });

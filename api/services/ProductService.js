@@ -5,7 +5,7 @@ const ProductService = {
         try {
             const product = await Product.create({
                 ...productData,
-                creatorId: userId
+                UserId: userId
             });
             return { status: true, message: "Product created successfully", data: product };
         } catch (error) {
