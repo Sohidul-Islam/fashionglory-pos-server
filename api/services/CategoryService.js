@@ -1,23 +1,26 @@
 const { Category } = require('../entity');
 
 const CategoryService = {
-    async create(categoryData) {
+    async create(categoryData, userId) {
         try {
-            const category = await Category.create(categoryData);
+            const category = await Category.create({
+                ...categoryData,
+                UserId: userId
+            });
             return { status: true, message: "Category created successfully", data: category };
         } catch (error) {
             return { status: false, message: "Failed to create category", data: null, error };
         }
     },
 
-    async getAll(query = {}) {
+    async getAll(query = {}, userId) {
         try {
             const whereClause = Object.keys(query).reduce((acc, key) => {
                 if (query[key] !== undefined && query[key] !== null && query[key] !== '') {
                     acc[key] = query[key];
                 }
                 return acc;
-            }, {});
+            }, { UserId: userId });
 
             const categories = await Category.findAll({
                 where: whereClause
@@ -28,9 +31,14 @@ const CategoryService = {
         }
     },
 
-    async getById(id) {
+    async getById(id, userId) {
         try {
-            const category = await Category.findByPk(id);
+            const category = await Category.findOne({
+                where: {
+                    id: id,
+                    UserId: userId
+                }
+            });
             if (!category) {
                 return { status: false, message: "Category not found", data: null };
             }
@@ -40,9 +48,14 @@ const CategoryService = {
         }
     },
 
-    async update(id, updateData) {
+    async update(id, updateData, userId) {
         try {
-            const category = await Category.findByPk(id);
+            const category = await Category.findOne({
+                where: {
+                    id: id,
+                    UserId: userId
+                }
+            });
             if (!category) {
                 return { status: false, message: "Category not found", data: null };
             }
@@ -60,9 +73,14 @@ const CategoryService = {
         }
     },
 
-    async delete(id) {
+    async delete(id, userId) {
         try {
-            const category = await Category.findByPk(id);
+            const category = await Category.findOne({
+                where: {
+                    id: id,
+                    UserId: userId
+                }
+            });
             if (!category) {
                 return { status: false, message: "Category not found", data: null };
             }

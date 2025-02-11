@@ -1,23 +1,26 @@
 const { Color } = require('../entity');
 
 const ColorService = {
-    async create(colorData) {
+    async create(colorData, userId) {
         try {
-            const color = await Color.create(colorData);
+            const color = await Color.create({
+                ...colorData,
+                UserId: userId
+            });
             return { status: true, message: "Color created successfully", data: color };
         } catch (error) {
             return { status: false, message: "Failed to create color", data: null, error };
         }
     },
 
-    async getAll(query = {}) {
+    async getAll(query = {}, userId) {
         try {
             const whereClause = Object.keys(query).reduce((acc, key) => {
                 if (query[key] !== undefined && query[key] !== null && query[key] !== '') {
                     acc[key] = query[key];
                 }
                 return acc;
-            }, {});
+            }, { UserId: userId });
 
             const colors = await Color.findAll({ where: whereClause });
             return { status: true, message: "Colors retrieved successfully", data: colors };

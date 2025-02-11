@@ -1,27 +1,42 @@
 const { Unit } = require('../entity');
 
 const UnitService = {
-    async create(unitData) {
+    async create(unitData, userId) {
         try {
-            const unit = await Unit.create(unitData);
+            const unit = await Unit.create({
+                ...unitData,
+                UserId: userId
+            });
             return { status: true, message: "Unit created successfully", data: unit };
         } catch (error) {
             return { status: false, message: "Failed to create unit", data: null, error };
         }
     },
 
-    async getAll(query = {}) {
+    async getAll(query = {}, userId) {
         try {
-            const units = await Unit.findAll({ where: query });
+            const whereClause = Object.keys(query).reduce((acc, key) => {
+                if (query[key] !== undefined && query[key] !== null && query[key] !== '') {
+                    acc[key] = query[key];
+                }
+                return acc;
+            }, { UserId: userId });
+
+            const units = await Unit.findAll({ where: whereClause });
             return { status: true, message: "Units retrieved successfully", data: units };
         } catch (error) {
             return { status: false, message: "Failed to retrieve units", data: null, error };
         }
     },
 
-    async getById(id) {
+    async getById(id, userId) {
         try {
-            const unit = await Unit.findByPk(id);
+            const unit = await Unit.findOne({
+                where: {
+                    id: id,
+                    UserId: userId
+                }
+            });
             if (!unit) {
                 return { status: false, message: "Unit not found", data: null };
             }
@@ -31,9 +46,14 @@ const UnitService = {
         }
     },
 
-    async update(id, updateData) {
+    async update(id, updateData, userId) {
         try {
-            const unit = await Unit.findByPk(id);
+            const unit = await Unit.findOne({
+                where: {
+                    id: id,
+                    UserId: userId
+                }
+            });
             if (!unit) {
                 return { status: false, message: "Unit not found", data: null };
             }
@@ -44,9 +64,14 @@ const UnitService = {
         }
     },
 
-    async delete(id) {
+    async delete(id, userId) {
         try {
-            const unit = await Unit.findByPk(id);
+            const unit = await Unit.findOne({
+                where: {
+                    id: id,
+                    UserId: userId
+                }
+            });
             if (!unit) {
                 return { status: false, message: "Unit not found", data: null };
             }

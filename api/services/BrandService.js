@@ -1,27 +1,44 @@
 const { Brand } = require('../entity');
 
 const BrandService = {
-    async create(brandData) {
+    async create(brandData, userId) {
         try {
-            const brand = await Brand.create(brandData);
+            const brand = await Brand.create({
+                ...brandData,
+                UserId: userId
+            });
             return { status: true, message: "Brand created successfully", data: brand };
         } catch (error) {
             return { status: false, message: "Failed to create brand", data: null, error };
         }
     },
 
-    async getAll(query = {}) {
+    async getAll(query = {}, userId) {
         try {
-            const brands = await Brand.findAll({ where: query });
+            const whereClause = Object.keys(query).reduce((acc, key) => {
+                if (query[key] !== undefined && query[key] !== null && query[key] !== '') {
+                    acc[key] = query[key];
+                }
+                return acc;
+            }, { UserId: userId });
+
+            const brands = await Brand.findAll({
+                where: whereClause
+            });
             return { status: true, message: "Brands retrieved successfully", data: brands };
         } catch (error) {
             return { status: false, message: "Failed to retrieve brands", data: null, error };
         }
     },
 
-    async getById(id) {
+    async getById(id, userId) {
         try {
-            const brand = await Brand.findByPk(id);
+            const brand = await Brand.findOne({
+                where: {
+                    id: id,
+                    UserId: userId
+                }
+            });
             if (!brand) {
                 return { status: false, message: "Brand not found", data: null };
             }
@@ -31,9 +48,14 @@ const BrandService = {
         }
     },
 
-    async update(id, updateData) {
+    async update(id, updateData, userId) {
         try {
-            const brand = await Brand.findByPk(id);
+            const brand = await Brand.findOne({
+                where: {
+                    id: id,
+                    UserId: userId
+                }
+            });
             if (!brand) {
                 return { status: false, message: "Brand not found", data: null };
             }
@@ -44,9 +66,14 @@ const BrandService = {
         }
     },
 
-    async delete(id) {
+    async delete(id, userId) {
         try {
-            const brand = await Brand.findByPk(id);
+            const brand = await Brand.findOne({
+                where: {
+                    id: id,
+                    UserId: userId
+                }
+            });
             if (!brand) {
                 return { status: false, message: "Brand not found", data: null };
             }

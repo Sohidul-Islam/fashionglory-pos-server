@@ -1,23 +1,26 @@
 const { Size } = require('../entity');
 
 const SizeService = {
-    async create(sizeData) {
+    async create(sizeData, userId) {
         try {
-            const size = await Size.create(sizeData);
+            const size = await Size.create({
+                ...sizeData,
+                UserId: userId
+            });
             return { status: true, message: "Size created successfully", data: size };
         } catch (error) {
             return { status: false, message: "Failed to create size", data: null, error };
         }
     },
 
-    async getAll(query = {}) {
+    async getAll(query = {}, userId) {
         try {
             const whereClause = Object.keys(query).reduce((acc, key) => {
                 if (query[key] !== undefined && query[key] !== null && query[key] !== '') {
                     acc[key] = query[key];
                 }
                 return acc;
-            }, {});
+            }, { UserId: userId });
 
             const sizes = await Size.findAll({ where: whereClause });
             return { status: true, message: "Sizes retrieved successfully", data: sizes };

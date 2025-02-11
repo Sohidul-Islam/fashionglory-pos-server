@@ -3,42 +3,31 @@ const sequelize = require('../db');
 
 // Service
 const OrderService = {
-    async create(orderData) {
+    async create(orderData, userId) {
         try {
-            const order = await sequelize.transaction(async (t) => {
-                const createdOrder = await Order.create(
-                    {
-                        orderId: orderData.orderId,
-                        date: orderData.date,
-                        customerName: orderData.customer.name,
-                        customerPhone: orderData.customer.phone,
-                        subtotal: orderData.subtotal,
-                        tax: orderData.tax,
-                        total: orderData.total,
-                        paymentMethod: orderData.paymentMethod,
-                        verificationCode: orderData.verificationCode,
-                        expiryDate: orderData.expiryDate,
-                        items: orderData.items,
-                    },
-                    {
-                        transaction: t,
-                    }
-                );
-                return createdOrder;
+            const order = await Order.create({
+                ...orderData,
+                UserId: userId
             });
-
-            return { status: true, message: 'Order created successfully', data: order };
+            return { status: true, message: "Order created successfully", data: order };
         } catch (error) {
-            return { status: false, message: 'Failed to create order', error };
+            return { status: false, message: "Failed to create order", data: null, error };
         }
     },
 
-    async getAll() {
+    async getAll(query = {}, userId) {
         try {
-            const orders = await Order.findAll({ include: [{ model: OrderItem, as: 'items' }] });
-            return { status: true, message: 'Orders retrieved successfully', data: orders };
+            const whereClause = Object.keys(query).reduce((acc, key) => {
+                if (query[key] !== undefined && query[key] !== null && query[key] !== '') {
+                    acc[key] = query[key];
+                }
+                return acc;
+            }, { UserId: userId });
+
+            const orders = await Order.findAll({ where: whereClause });
+            return { status: true, message: "Orders retrieved successfully", data: orders };
         } catch (error) {
-            return { status: false, message: 'Failed to retrieve orders', error };
+            return { status: false, message: "Failed to retrieve orders", data: null, error };
         }
     },
 

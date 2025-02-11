@@ -13,22 +13,44 @@ const ProductService = {
         }
     },
 
-    async getAll(query = {}) {
+    async getAll(query = {}, userId) {
         try {
+            const whereClause = Object.keys(query).reduce((acc, key) => {
+                if (query[key] !== undefined && query[key] !== null && query[key] !== '') {
+                    acc[key] = query[key];
+                }
+                return acc;
+            }, { UserId: userId }); // Add UserId to where clause
+
             const products = await Product.findAll({
+                where: whereClause,
                 include: [
-                    { model: Category },
-                    { model: Brand },
-                    { model: Unit },
+                    {
+                        model: Category,
+                        where: { UserId: userId }
+                    },
+                    {
+                        model: Brand,
+                        where: { UserId: userId }
+                    },
+                    {
+                        model: Unit,
+                        where: { UserId: userId }
+                    },
                     {
                         model: ProductVariant,
                         include: [
-                            { model: Color },
-                            { model: Size }
+                            {
+                                model: Color,
+                                where: { UserId: userId }
+                            },
+                            {
+                                model: Size,
+                                where: { UserId: userId }
+                            }
                         ]
                     }
-                ],
-                where: query
+                ]
             });
             return { status: true, message: "Products retrieved successfully", data: products };
         } catch (error) {
@@ -36,18 +58,37 @@ const ProductService = {
         }
     },
 
-    async getById(id) {
+    async getById(id, userId) {
         try {
-            const product = await Product.findByPk(id, {
+            const product = await Product.findOne({
+                where: {
+                    id: id,
+                    UserId: userId
+                },
                 include: [
-                    { model: Category },
-                    { model: Brand },
-                    { model: Unit },
+                    {
+                        model: Category,
+                        where: { UserId: userId }
+                    },
+                    {
+                        model: Brand,
+                        where: { UserId: userId }
+                    },
+                    {
+                        model: Unit,
+                        where: { UserId: userId }
+                    },
                     {
                         model: ProductVariant,
                         include: [
-                            { model: Color },
-                            { model: Size }
+                            {
+                                model: Color,
+                                where: { UserId: userId }
+                            },
+                            {
+                                model: Size,
+                                where: { UserId: userId }
+                            }
                         ]
                     }
                 ]
@@ -61,9 +102,14 @@ const ProductService = {
         }
     },
 
-    async update(id, updateData) {
+    async update(id, updateData, userId) {
         try {
-            const product = await Product.findByPk(id);
+            const product = await Product.findOne({
+                where: {
+                    id: id,
+                    UserId: userId
+                }
+            });
             if (!product) {
                 return { status: false, message: "Product not found", data: null };
             }
@@ -74,9 +120,14 @@ const ProductService = {
         }
     },
 
-    async delete(id) {
+    async delete(id, userId) {
         try {
-            const product = await Product.findByPk(id);
+            const product = await Product.findOne({
+                where: {
+                    id: id,
+                    UserId: userId
+                }
+            });
             if (!product) {
                 return { status: false, message: "Product not found", data: null };
             }

@@ -1,19 +1,36 @@
 const { ProductVariant, Product, Color, Size } = require('../entity');
 
 const ProductVariantService = {
-    async create(variantData) {
+    async create(variantData, userId) {
         try {
+            // Check if the product belongs to the user
+            const product = await Product.findOne({
+                where: {
+                    id: variantData.ProductId,
+                    UserId: userId
+                }
+            });
+
+            if (!product) {
+                return {
+                    status: false,
+                    message: "Product not found or unauthorized",
+                    data: null
+                };
+            }
 
             // Check if variant with same product, color and size exists
             const existingVariant = await ProductVariant.findOne({
                 where: {
-                    ProductId: Number(variantData.ProductId) || undefined,
-                    ColorId: Number(variantData.ColorId) || undefined,
-                    SizeId: Number(variantData.SizeId) || undefined
-                }
+                    ProductId: variantData.ProductId,
+                    ColorId: variantData.ColorId,
+                    SizeId: variantData.SizeId
+                },
+                include: [{
+                    model: Product,
+                    where: { UserId: userId }
+                }]
             });
-
-            console.log(existingVariant);
 
             if (existingVariant) {
                 return {
@@ -39,21 +56,24 @@ const ProductVariantService = {
         }
     },
 
-    async getAll(query = {}) {
+    async getAll(query = {}, userId) {
         try {
-            const whereClause = Object.keys(query).reduce((acc, key) => {
-                if (query[key] !== undefined && query[key] !== null && query[key] !== '') {
-                    acc[key] = query[key];
-                }
-                return acc;
-            }, {});
-
             const variants = await ProductVariant.findAll({
-                where: whereClause,
+                where: query,
                 include: [
-                    { model: Product },
-                    { model: Color },
-                    { model: Size }
+                    {
+                        model: Product,
+                        where: { UserId: userId },
+                        required: true
+                    },
+                    {
+                        model: Color,
+                        where: { UserId: userId }
+                    },
+                    {
+                        model: Size,
+                        where: { UserId: userId }
+                    }
                 ]
             });
             return {

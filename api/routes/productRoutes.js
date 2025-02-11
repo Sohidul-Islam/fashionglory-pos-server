@@ -11,22 +11,22 @@ router.post('/', AuthService.authenticate, requestHandler(null, async (req, res)
 }));
 
 router.get('/', AuthService.authenticate, requestHandler(null, async (req, res) => {
-    const result = await ProductService.getAll(req.query);
+    const result = await ProductService.getAll(req.query, req.user.id);
     res.status(result.status ? 200 : 400).json(result);
 }));
 
 router.get('/:id', AuthService.authenticate, requestHandler(null, async (req, res) => {
-    const result = await ProductService.getById(req.params.id);
+    const result = await ProductService.getById(req.params.id, req.user.id);
     res.status(result.status ? 200 : 404).json(result);
 }));
 
 router.post('/update/:id', AuthService.authenticate, requestHandler(null, async (req, res) => {
-    const result = await ProductService.update(req.params.id, req.body);
+    const result = await ProductService.update(req.params.id, req.body, req.user.id);
     res.status(result.status ? 200 : 400).json(result);
 }));
 
 router.post('/delete/:id', AuthService.authenticate, requestHandler(null, async (req, res) => {
-    const result = await ProductService.delete(req.params.id);
+    const result = await ProductService.delete(req.params.id, req.user.id);
     res.status(result.status ? 200 : 400).json(result);
 }));
 
