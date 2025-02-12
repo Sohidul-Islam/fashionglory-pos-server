@@ -78,14 +78,39 @@ const CategoryService = {
                 return { status: false, message: "Category not found", data: null };
             }
 
-            // Remove name from updateData to prevent name changes
-            const { name, ...allowedUpdates } = updateData;
+            // If trying to update name, check if it's unique
+            if (updateData.name && updateData.name !== category.name) {
+                const existingCategory = await Category.findOne({
+                    where: {
+                        name: updateData.name,
+                        UserId: userId,
+                        id: { [Op.ne]: id }
+                    }
+                });
 
+                if (existingCategory) {
+                    // Remove name from updates if it would create a duplicate
+                    const { name, ...allowedUpdates } = updateData;
+                    const filteredUpdateData = Object.keys(allowedUpdates).reduce((acc, key) => {
+                        if (allowedUpdates[key] !== undefined && allowedUpdates[key] !== null && allowedUpdates[key] !== '') {
+                            acc[key] = allowedUpdates[key];
+                        }
+                        return acc;
+                    }, {});
 
+                    await category.update(filteredUpdateData);
+                    return {
+                        status: true,
+                        message: "Category updated successfully, but name was not changed as it already exists",
+                        data: category
+                    };
+                }
+            }
 
-            const filteredUpdateData = Object.keys(allowedUpdates).reduce((acc, key) => {
-                if (allowedUpdates[key] !== undefined && allowedUpdates[key] !== null && allowedUpdates[key] !== '') {
-                    acc[key] = allowedUpdates[key];
+            // If no name conflict, update everything
+            const filteredUpdateData = Object.keys(updateData).reduce((acc, key) => {
+                if (updateData[key] !== undefined && updateData[key] !== null && updateData[key] !== '') {
+                    acc[key] = updateData[key];
                 }
                 return acc;
             }, {});

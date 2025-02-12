@@ -78,12 +78,30 @@ const BrandService = {
                 return { status: false, message: "Brand not found", data: null };
             }
 
-            // Remove name from updateData to prevent name changes
-            const { name, ...allowedUpdates } = updateData;
+            // If trying to update name, check if it's unique
+            if (updateData.name && updateData.name !== brand.name) {
+                const existingBrand = await Brand.findOne({
+                    where: {
+                        name: updateData.name,
+                        UserId: userId,
+                        id: { [Op.ne]: id }
+                    }
+                });
 
+                if (existingBrand) {
+                    // Remove name from updates if it would create a duplicate
+                    const { name, ...allowedUpdates } = updateData;
+                    await brand.update(allowedUpdates);
+                    return {
+                        status: true,
+                        message: "Brand updated successfully, but name was not changed as it already exists",
+                        data: brand
+                    };
+                }
+            }
 
-
-            await brand.update(allowedUpdates);
+            // If no name conflict, update everything
+            await brand.update(updateData);
             return { status: true, message: "Brand updated successfully", data: brand };
         } catch (error) {
             return { status: false, message: "Failed to update brand", data: null, error };
