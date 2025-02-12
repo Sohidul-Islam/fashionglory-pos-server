@@ -3,6 +3,22 @@ const { Color } = require('../entity');
 const ColorService = {
     async create(colorData, userId) {
         try {
+            // Check if color name already exists for this user
+            const existingColor = await Color.findOne({
+                where: {
+                    name: colorData.name,
+                    UserId: userId
+                }
+            });
+
+            if (existingColor) {
+                return {
+                    status: false,
+                    message: "Color name already exists for this user",
+                    data: null
+                };
+            }
+
             const color = await Color.create({
                 ...colorData,
                 UserId: userId
@@ -29,9 +45,14 @@ const ColorService = {
         }
     },
 
-    async getById(id) {
+    async getById(id, userId) {
         try {
-            const color = await Color.findByPk(id);
+            const color = await Color.findOne({
+                where: {
+                    id: id,
+                    UserId: userId
+                }
+            });
             if (!color) {
                 return { status: false, message: "Color not found", data: null };
             }
@@ -41,9 +62,14 @@ const ColorService = {
         }
     },
 
-    async update(id, updateData) {
+    async update(id, updateData, userId) {
         try {
-            const color = await Color.findByPk(id);
+            const color = await Color.findOne({
+                where: {
+                    id: id,
+                    UserId: userId
+                }
+            });
             if (!color) {
                 return { status: false, message: "Color not found", data: null };
             }

@@ -7,6 +7,8 @@ const Order = require('./Order');
 const Color = require('./Color');
 const Size = require('./Size');
 const ProductVariant = require('./ProductVariant');
+const OrderItem = require('./OrderItem');
+const StockHistory = require('./StockHistory');
 
 // User Associations
 User.hasMany(Product);
@@ -48,7 +50,18 @@ ProductVariant.belongsTo(Size);
 
 // Order Associations
 Order.belongsTo(User);
+Order.hasMany(OrderItem);
+OrderItem.belongsTo(Order);
 
+// OrderItem Associations
+OrderItem.belongsTo(Product);
+OrderItem.belongsTo(ProductVariant);
+
+// StockHistory Associations
+StockHistory.belongsTo(Product);
+StockHistory.belongsTo(ProductVariant);
+StockHistory.belongsTo(Order);
+StockHistory.belongsTo(User);
 
 module.exports = {
     User,
@@ -59,5 +72,7 @@ module.exports = {
     Order,
     Color,
     Size,
-    ProductVariant
+    ProductVariant,
+    OrderItem,
+    StockHistory
 };

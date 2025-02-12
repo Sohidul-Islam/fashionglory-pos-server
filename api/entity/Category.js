@@ -12,8 +12,6 @@ const Category = sequelize.define(
         name: {
             type: Sequelize.STRING,
             allowNull: false,
-            unique: "category_name",
-            comment: "Category name",
         },
         description: {
             type: Sequelize.TEXT,

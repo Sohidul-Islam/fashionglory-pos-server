@@ -3,6 +3,22 @@ const { Category } = require('../entity');
 const CategoryService = {
     async create(categoryData, userId) {
         try {
+            // Check if category name already exists for this user
+            const existingCategory = await Category.findOne({
+                where: {
+                    name: categoryData.name,
+                    UserId: userId
+                }
+            });
+
+            if (existingCategory) {
+                return {
+                    status: false,
+                    message: "Category name already exists for this user",
+                    data: null
+                };
+            }
+
             const category = await Category.create({
                 ...categoryData,
                 UserId: userId
@@ -27,6 +43,7 @@ const CategoryService = {
             });
             return { status: true, message: "Categories retrieved successfully", data: categories };
         } catch (error) {
+            console.log({ error })
             return { status: false, message: "Failed to retrieve categories", data: null, error };
         }
     },

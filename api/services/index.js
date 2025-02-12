@@ -7,6 +7,8 @@ const OrderService = require("./orderService");
 const ColorService = require("./ColorService");
 const SizeService = require("./SizeService");
 const ProductVariantService = require("./ProductVariantService");
+const StockService = require("./StockService");
+const NotificationService = require("./NotificationService");
 
 module.exports = {
     AuthService,
@@ -17,5 +19,7 @@ module.exports = {
     OrderService,
     ColorService,
     SizeService,
-    ProductVariantService
+    ProductVariantService,
+    StockService,
+    NotificationService
 };
