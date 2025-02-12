@@ -27,26 +27,21 @@ const ProductService = {
                 include: [
                     {
                         model: Category,
-                        where: { UserId: userId }
                     },
                     {
                         model: Brand,
-                        where: { UserId: userId }
                     },
                     {
                         model: Unit,
-                        where: { UserId: userId }
                     },
                     {
                         model: ProductVariant,
                         include: [
                             {
                                 model: Color,
-                                where: { UserId: userId }
                             },
                             {
                                 model: Size,
-                                where: { UserId: userId }
                             }
                         ]
                     }

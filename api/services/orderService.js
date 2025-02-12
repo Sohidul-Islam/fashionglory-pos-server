@@ -7,6 +7,15 @@ const OrderService = {
     async create(orderData, userId) {
         const transaction = await sequelize.transaction();
         try {
+            console.log({ orderData })
+            // Validate and calculate prices for all items
+            const { validatedItems, subtotal } = await this.validateOrderItems(orderData?.items, userId, transaction);
+
+            // Calculate tax and total
+            const tax = (orderData.tax || 0) * subtotal / 100;
+            const discount = orderData.discount || 0;
+            const total = subtotal + tax - discount;
+
             // Generate unique order number
             const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
@@ -16,12 +25,24 @@ const OrderService = {
                 orderNumber,
                 UserId: userId,
                 orderDate: new Date(),
+                subtotal,
+                tax,
+                discount,
+                total
             }, { transaction });
 
             // Process order items and update stock
-            for (const item of orderData.items) {
-                const { productId, variantId, quantity, unitPrice } = item;
-                const subtotal = quantity * unitPrice;
+            for (const item of validatedItems) {
+                const {
+                    productId,
+                    variantId,
+                    quantity,
+                    unitPrice,
+                    subtotal,
+                    currentStock,
+                    variant,
+                    product
+                } = item;
 
                 // Create order item
                 await OrderItem.create({
@@ -34,19 +55,14 @@ const OrderService = {
                 }, { transaction });
 
                 // Update stock
-                if (variantId) {
-                    const variant = await ProductVariant.findOne({
-                        where: { id: variantId },
-                        transaction
-                    });
-                    const previousStock = variant.quantity;
-                    const newStock = previousStock - quantity;
+                const newStock = currentStock - quantity;
 
+                if (variantId && variant) {
                     await variant.update({ quantity: newStock }, { transaction });
                     await StockHistory.create({
                         type: 'order',
                         quantity,
-                        previousStock,
+                        previousStock: currentStock,
                         newStock,
                         ProductId: productId,
                         ProductVariantId: variantId,
@@ -55,18 +71,11 @@ const OrderService = {
                         note: `Order ${orderNumber}`
                     }, { transaction });
                 } else {
-                    const product = await Product.findOne({
-                        where: { id: productId },
-                        transaction
-                    });
-                    const previousStock = product.quantity;
-                    const newStock = previousStock - quantity;
-
-                    await product.update({ quantity: newStock }, { transaction });
+                    await product.update({ stock: newStock }, { transaction });
                     await StockHistory.create({
                         type: 'order',
                         quantity,
-                        previousStock,
+                        previousStock: currentStock,
                         newStock,
                         ProductId: productId,
                         OrderId: order.id,
@@ -77,11 +86,16 @@ const OrderService = {
             }
 
             await transaction.commit();
+
             return {
                 status: true,
                 message: "Order created successfully",
-                data: order
+                data: {
+                    ...order.toJSON(),
+                    items: validatedItems
+                }
             };
+
         } catch (error) {
             await transaction.rollback();
             return {
@@ -184,11 +198,11 @@ const OrderService = {
                     include: [
                         {
                             model: Product,
-                            attributes: ['costPrice']
+                            attributes: ['purchasePrice']
                         },
                         {
                             model: ProductVariant,
-                            attributes: ['costPrice']
+                            attributes: ['purchasePrice']
                         }
                     ]
                 }]
@@ -269,11 +283,11 @@ const OrderService = {
                     include: [
                         {
                             model: Product,
-                            attributes: ['name', 'sku', 'costPrice']
+                            attributes: ['name', 'sku', 'purchasePrice']
                         },
                         {
                             model: ProductVariant,
-                            attributes: ['sku', 'costPrice']
+                            attributes: ['sku', 'purchasePrice']
                         }
                     ]
                 }],
@@ -540,6 +554,88 @@ const OrderService = {
                 error: error.message
             };
         }
+    },
+
+    async validateOrderItems(items, userId, transaction) {
+        const validatedItems = [];
+        let subtotal = 0;
+
+        console.log({ items })
+
+        for (const item of items) {
+            const { productId, variantId, quantity } = item;
+
+            // Validate product exists and belongs to user
+            const product = await Product.findOne({
+                where: {
+                    id: productId,
+                    UserId: userId,
+                    status: "active"
+                },
+                transaction
+            });
+
+            if (!product) {
+                throw new Error(`Product with ID ${productId} not found or unauthorized`);
+            }
+
+            let finalPrice;
+            let currentStock;
+            let variant = null;
+
+            if (variantId) {
+                // Validate variant exists and belongs to the product
+                variant = await ProductVariant.findOne({
+                    where: {
+                        id: variantId,
+                        ProductId: productId
+                    },
+                    transaction
+                });
+
+                if (!variant) {
+                    throw new Error(`Variant with ID ${variantId} not found for product ${productId}`);
+                }
+
+                currentStock = variant.quantity;
+                // Use product price for variant as they share the same price
+                finalPrice = product.salesPrice;
+            } else {
+                currentStock = product.stock;
+                finalPrice = product.salesPrice;
+            }
+
+            // Check stock availability
+            if (currentStock < quantity) {
+                throw new Error(`Insufficient stock for ${variant ? 'variant' : 'product'} ${variant ? variantId : productId}`);
+            }
+
+            // Calculate item subtotal with any applicable discounts
+            let itemPrice = finalPrice;
+            if (product.discountType && product.discountAmount) {
+                if (product.discountType === 'percentage') {
+                    itemPrice = finalPrice * (1 - product.discountAmount / 100);
+                } else if (product.discountType === 'amount') {
+                    itemPrice = finalPrice - product.discountAmount;
+                }
+            }
+
+            const itemSubtotal = itemPrice * quantity;
+            subtotal += itemSubtotal;
+
+            validatedItems.push({
+                productId,
+                variantId,
+                quantity,
+                unitPrice: itemPrice,
+                subtotal: itemSubtotal,
+                currentStock,
+                product,
+                variant
+            });
+        }
+
+        return { validatedItems, subtotal };
     }
 };
 

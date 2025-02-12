@@ -20,7 +20,8 @@ const Order = sequelize.define('Order', {
     },
     customerPhone: {
         type: Sequelize.STRING,
-        allowNull: false,
+        allowNull: true,
+        defaultValue: null
     },
     customerEmail: {
         type: Sequelize.STRING,

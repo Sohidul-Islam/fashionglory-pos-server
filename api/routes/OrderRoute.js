@@ -17,6 +17,12 @@ router.get('/customer/:customerId', AuthService.authenticate, requestHandler(nul
     res.status(result.status ? 200 : 400).json(result);
 }));
 
+// Get  order history
+router.get('/', AuthService.authenticate, requestHandler(null, async (req, res) => {
+    const result = await OrderService.getAll(req?.query, req.user.id);
+    res.status(result.status ? 200 : 400).json(result);
+}));
+
 // Get dashboard statistics
 router.get('/dashboard', AuthService.authenticate, requestHandler(null, async (req, res) => {
     const result = await OrderService.getDashboardStats(req.user.id, req.query);
