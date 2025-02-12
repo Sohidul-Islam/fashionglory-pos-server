@@ -73,9 +73,15 @@ const ColorService = {
             if (!color) {
                 return { status: false, message: "Color not found", data: null };
             }
-            const filteredUpdateData = Object.keys(updateData).reduce((acc, key) => {
-                if (updateData[key] !== undefined && updateData[key] !== null && updateData[key] !== '') {
-                    acc[key] = updateData[key];
+
+            // Remove name from updateData to prevent name changes
+            const { name, ...allowedUpdates } = updateData;
+
+
+
+            const filteredUpdateData = Object.keys(allowedUpdates).reduce((acc, key) => {
+                if (allowedUpdates[key] !== undefined && allowedUpdates[key] !== null && allowedUpdates[key] !== '') {
+                    acc[key] = allowedUpdates[key];
                 }
                 return acc;
             }, {});

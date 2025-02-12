@@ -1,8 +1,25 @@
 const { Brand } = require('../entity');
+const { Op } = require('sequelize');
 
 const BrandService = {
     async create(brandData, userId) {
         try {
+            // Check if brand name already exists for this user
+            const existingBrand = await Brand.findOne({
+                where: {
+                    name: brandData.name,
+                    UserId: userId
+                }
+            });
+
+            if (existingBrand) {
+                return {
+                    status: false,
+                    message: "Brand name already exists for this user",
+                    data: null
+                };
+            }
+
             const brand = await Brand.create({
                 ...brandData,
                 UserId: userId
@@ -56,10 +73,17 @@ const BrandService = {
                     UserId: userId
                 }
             });
+
             if (!brand) {
                 return { status: false, message: "Brand not found", data: null };
             }
-            await brand.update(updateData);
+
+            // Remove name from updateData to prevent name changes
+            const { name, ...allowedUpdates } = updateData;
+
+
+
+            await brand.update(allowedUpdates);
             return { status: true, message: "Brand updated successfully", data: brand };
         } catch (error) {
             return { status: false, message: "Failed to update brand", data: null, error };

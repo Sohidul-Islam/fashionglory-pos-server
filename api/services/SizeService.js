@@ -1,8 +1,25 @@
 const { Size } = require('../entity');
+const { Op } = require('sequelize');
 
 const SizeService = {
     async create(sizeData, userId) {
         try {
+            // Check if size name already exists for this user
+            const existingSize = await Size.findOne({
+                where: {
+                    name: sizeData.name,
+                    UserId: userId
+                }
+            });
+
+            if (existingSize) {
+                return {
+                    status: false,
+                    message: "Size name already exists for this user",
+                    data: null
+                };
+            }
+
             const size = await Size.create({
                 ...sizeData,
                 UserId: userId
@@ -29,9 +46,14 @@ const SizeService = {
         }
     },
 
-    async getById(id) {
+    async getById(id, userId) {
         try {
-            const size = await Size.findByPk(id);
+            const size = await Size.findOne({
+                where: {
+                    id: id,
+                    UserId: userId
+                }
+            });
             if (!size) {
                 return { status: false, message: "Size not found", data: null };
             }
@@ -41,15 +63,24 @@ const SizeService = {
         }
     },
 
-    async update(id, updateData) {
+    async update(id, updateData, userId) {
         try {
-            const size = await Size.findByPk(id);
+            const size = await Size.findOne({
+                where: {
+                    id: id,
+                    UserId: userId
+                }
+            });
             if (!size) {
                 return { status: false, message: "Size not found", data: null };
             }
-            const filteredUpdateData = Object.keys(updateData).reduce((acc, key) => {
-                if (updateData[key] !== undefined && updateData[key] !== null && updateData[key] !== '') {
-                    acc[key] = updateData[key];
+
+            // Remove name from updateData to prevent name changes
+            const { name, ...allowedUpdates } = updateData;
+
+            const filteredUpdateData = Object.keys(allowedUpdates).reduce((acc, key) => {
+                if (allowedUpdates[key] !== undefined && allowedUpdates[key] !== null && allowedUpdates[key] !== '') {
+                    acc[key] = allowedUpdates[key];
                 }
                 return acc;
             }, {});
@@ -61,9 +92,14 @@ const SizeService = {
         }
     },
 
-    async delete(id) {
+    async delete(id, userId) {
         try {
-            const size = await Size.findByPk(id);
+            const size = await Size.findOne({
+                where: {
+                    id: id,
+                    UserId: userId
+                }
+            });
             if (!size) {
                 return { status: false, message: "Size not found", data: null };
             }
