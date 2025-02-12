@@ -75,12 +75,39 @@ const SizeService = {
                 return { status: false, message: "Size not found", data: null };
             }
 
-            // Remove name from updateData to prevent name changes
-            const { name, ...allowedUpdates } = updateData;
+            // If trying to update name, check if it's unique
+            if (updateData.name && updateData.name !== size.name) {
+                const existingSize = await Size.findOne({
+                    where: {
+                        name: updateData.name,
+                        UserId: userId,
+                        id: { [Op.ne]: id }
+                    }
+                });
 
-            const filteredUpdateData = Object.keys(allowedUpdates).reduce((acc, key) => {
-                if (allowedUpdates[key] !== undefined && allowedUpdates[key] !== null && allowedUpdates[key] !== '') {
-                    acc[key] = allowedUpdates[key];
+                if (existingSize) {
+                    // Remove name from updates if it would create a duplicate
+                    const { name, ...allowedUpdates } = updateData;
+                    const filteredUpdateData = Object.keys(allowedUpdates).reduce((acc, key) => {
+                        if (allowedUpdates[key] !== undefined && allowedUpdates[key] !== null && allowedUpdates[key] !== '') {
+                            acc[key] = allowedUpdates[key];
+                        }
+                        return acc;
+                    }, {});
+
+                    await size.update(filteredUpdateData);
+                    return {
+                        status: true,
+                        message: "Size updated successfully, but name was not changed as it already exists",
+                        data: size
+                    };
+                }
+            }
+
+            // If no name conflict, update everything
+            const filteredUpdateData = Object.keys(updateData).reduce((acc, key) => {
+                if (updateData[key] !== undefined && updateData[key] !== null && updateData[key] !== '') {
+                    acc[key] = updateData[key];
                 }
                 return acc;
             }, {});

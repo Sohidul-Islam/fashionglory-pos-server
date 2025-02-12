@@ -85,10 +85,42 @@ const UnitService = {
                 return { status: false, message: "Unit not found", data: null };
             }
 
-            // Remove name and shortName from updateData to prevent changes
-            const { name, shortName, ...allowedUpdates } = updateData;
+            // If trying to update name or shortName, check if they're unique
+            if ((updateData.name && updateData.name !== unit.name) ||
+                (updateData.shortName && updateData.shortName !== unit.shortName)) {
+                const existingUnit = await Unit.findOne({
+                    where: {
+                        [Op.or]: [
+                            {
+                                name: updateData.name || unit.name,
+                                UserId: userId,
+                                id: { [Op.ne]: id }
+                            },
+                            {
+                                shortName: updateData.shortName || unit.shortName,
+                                UserId: userId,
+                                id: { [Op.ne]: id }
+                            }
+                        ]
+                    }
+                });
 
-            await unit.update(allowedUpdates);
+                if (existingUnit) {
+                    // Remove name and shortName from updates if they would create duplicates
+                    const { name, shortName, ...allowedUpdates } = updateData;
+                    await unit.update(allowedUpdates);
+                    return {
+                        status: true,
+                        message: existingUnit.name === (updateData.name || unit.name)
+                            ? "Unit updated successfully, but name was not changed as it already exists"
+                            : "Unit updated successfully, but short name was not changed as it already exists",
+                        data: unit
+                    };
+                }
+            }
+
+            // If no conflicts, update everything
+            await unit.update(updateData);
             return { status: true, message: "Unit updated successfully", data: unit };
         } catch (error) {
             return { status: false, message: "Failed to update unit", data: null, error };
