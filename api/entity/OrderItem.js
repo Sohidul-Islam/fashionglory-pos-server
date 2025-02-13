@@ -15,10 +15,16 @@ const OrderItem = sequelize.define("OrderItem", {
         type: Sequelize.DECIMAL(10, 2),
         allowNull: false,
     },
+    purchasePrice: {
+        type: Sequelize.DECIMAL(10, 2),
+        allowNull: false,
+        defaultValue: 0
+    },
     subtotal: {
         type: Sequelize.DECIMAL(10, 2),
         allowNull: false,
     },
+
 
 });
 

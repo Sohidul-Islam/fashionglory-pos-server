@@ -1,4 +1,4 @@
-const { Order, OrderItem, Product, ProductVariant, StockHistory } = require('../entity');
+const { Order, OrderItem, Product, ProductVariant, StockHistory, Color, Size } = require('../entity');
 const sequelize = require('../db');
 const { Op } = require('sequelize');
 
@@ -185,7 +185,7 @@ const OrderService = {
                 orderStatus: 'completed'
             };
 
-            if (dateRange) {
+            if (dateRange?.startDate && dateRange?.endDate) {
                 whereClause.orderDate = {
                     [Op.between]: [dateRange.startDate, dateRange.endDate]
                 };
@@ -199,10 +199,6 @@ const OrderService = {
                         {
                             model: Product,
                             attributes: ['purchasePrice']
-                        },
-                        {
-                            model: ProductVariant,
-                            attributes: ['purchasePrice']
                         }
                     ]
                 }]
@@ -210,24 +206,22 @@ const OrderService = {
 
             // Calculate detailed statistics
             const stats = orders.reduce((acc, order) => {
-                acc.totalSales += order.total;
+                acc.totalSales += Number(order.total);
                 acc.totalOrders++;
-                acc.totalDiscount += order.discount;
-                acc.totalTax += order.tax;
+                acc.totalDiscount += Number(order.discount);
+                acc.totalTax += Number(order.tax);
 
                 // Calculate profit/loss per item
                 order.OrderItems.forEach(item => {
-                    const costPrice = item.Product ?
-                        item.Product.costPrice :
-                        item.ProductVariant.costPrice;
-                    const revenue = item.unitPrice * item.quantity;
-                    const cost = costPrice * item.quantity;
-                    const itemProfit = revenue - cost;
+                    const costPrice = Number(item?.purchasePrice || item.Product.purchasePrice || 0);
+                    const revenue = Number(item.unitPrice * item.quantity);
+                    const cost = Number(costPrice * item.quantity);
+                    const itemProfit = Number(revenue - cost);
 
                     if (itemProfit >= 0) {
-                        acc.totalProfit += itemProfit;
+                        acc.totalProfit += Number(itemProfit);
                     } else {
-                        acc.totalLoss += Math.abs(itemProfit);
+                        acc.totalLoss += Number(Math.abs(itemProfit));
                     }
                 });
 
@@ -241,35 +235,23 @@ const OrderService = {
                 totalTax: 0
             });
 
-            // Add averages and percentages
-            stats.averageOrderValue = stats.totalOrders ?
-                (stats.totalSales / stats.totalOrders).toFixed(2) : 0;
-            stats.profitMargin = stats.totalSales ?
-                ((stats.totalProfit / stats.totalSales) * 100).toFixed(2) : 0;
-            stats.lossRate = stats.totalSales ?
-                ((stats.totalLoss / stats.totalSales) * 100).toFixed(2) : 0;
-
             return {
                 status: true,
-                message: "Dashboard stats retrieved successfully",
+                message: "Dashboard statistics retrieved successfully",
                 data: stats
             };
         } catch (error) {
             return {
                 status: false,
-                message: "Failed to retrieve dashboard stats",
+                message: "Failed to retrieve dashboard statistics",
                 error: error.message
             };
         }
     },
 
-    async getSalesReport(userId, query) {
+    async getSalesReport(userId, query = {}) {
         try {
-            const whereClause = {
-                UserId: userId,
-                orderStatus: 'completed'
-            };
-
+            const whereClause = { UserId: userId };
             if (query.startDate && query.endDate) {
                 whereClause.orderDate = {
                     [Op.between]: [new Date(query.startDate), new Date(query.endDate)]
@@ -287,14 +269,13 @@ const OrderService = {
                         },
                         {
                             model: ProductVariant,
-                            attributes: ['sku', 'purchasePrice']
+                            attributes: ['sku']
                         }
                     ]
                 }],
                 order: [['orderDate', 'DESC']]
             });
 
-            // Process orders for detailed report
             const report = orders.map(order => ({
                 orderNumber: order.orderNumber,
                 orderDate: order.orderDate,
@@ -305,7 +286,7 @@ const OrderService = {
                     quantity: item.quantity,
                     unitPrice: item.unitPrice,
                     subtotal: item.subtotal,
-                    profit: (item.unitPrice - (item.Product ? item.Product.costPrice : item.ProductVariant.costPrice)) * item.quantity
+                    profit: (item.unitPrice - (item?.purchasePrice || item?.Product?.purchasePrice)) * item.quantity
                 })),
                 subtotal: order.subtotal,
                 tax: order.tax,
@@ -453,48 +434,52 @@ const OrderService = {
                 };
             }
 
-            const orderItems = await OrderItem.findAll({
+            const items = await OrderItem.findAll({
                 include: [
                     {
                         model: Order,
                         where: whereClause,
-                        attributes: []
                     },
                     {
                         model: Product,
-                        attributes: ['name', 'sku']
+                        attributes: ['name', 'sku', 'purchasePrice']
                     },
                     {
                         model: ProductVariant,
+                        attributes: ['sku'],
                         include: [
-                            { model: Product, attributes: ['name'] },
                             { model: Color, attributes: ['name'] },
                             { model: Size, attributes: ['name'] }
                         ]
                     }
                 ],
                 attributes: [
-                    [sequelize.fn('SUM', sequelize.col('quantity')), 'totalQuantity'],
-                    [sequelize.fn('SUM', sequelize.col('subtotal')), 'totalRevenue'],
                     'ProductId',
-                    'ProductVariantId'
+                    'ProductVariantId',
+                    [sequelize.fn('SUM', sequelize.col('OrderItem.quantity')), 'totalQuantity'],
+                    [sequelize.fn('SUM', sequelize.col('OrderItem.subtotal')), 'totalRevenue']
                 ],
-                group: ['ProductId', 'ProductVariantId'],
-                order: [[sequelize.fn('SUM', sequelize.col('quantity')), 'DESC']],
+                group: ['ProductId', 'ProductVariantId', 'Product.id', 'ProductVariant.id', 'ProductVariant->Color.id', 'ProductVariant->Size.id'],
+                order: [[sequelize.fn('SUM', sequelize.col('OrderItem.quantity')), 'DESC']],
                 limit: query.limit || 10
             });
 
-            const formattedItems = orderItems.map(item => ({
-                productName: item.Product ?
-                    item.Product.name :
-                    `${item.ProductVariant.Product.name} (${item.ProductVariant.Color.name} - ${item.ProductVariant.Size.name})`,
-                sku: item.Product ?
-                    item.Product.sku :
-                    item.ProductVariant.sku,
-                totalQuantity: parseInt(item.dataValues.totalQuantity),
-                totalRevenue: parseFloat(item.dataValues.totalRevenue),
-                averagePrice: (item.dataValues.totalRevenue / item.dataValues.totalQuantity).toFixed(2)
-            }));
+            const formattedItems = items.map(item => {
+                const totalQuantity = parseInt(item.dataValues.totalQuantity);
+                const totalRevenue = parseFloat(item.dataValues.totalRevenue);
+                const totalCost = item.Product.purchasePrice * totalQuantity;
+                const profit = totalRevenue - totalCost;
+
+                return {
+                    name: item.Product.name + (item.ProductVariant ?
+                        ` (${item.ProductVariant.Color.name} - ${item.ProductVariant.Size.name})` : ''),
+                    sku: item.ProductVariant ? item.ProductVariant.sku : item.Product.sku,
+                    totalQuantity,
+                    totalRevenue,
+                    profit,
+                    averagePrice: (totalRevenue / totalQuantity).toFixed(2)
+                };
+            });
 
             return {
                 status: true,
@@ -502,6 +487,7 @@ const OrderService = {
                 data: formattedItems
             };
         } catch (error) {
+            console.log({ error })
             return {
                 status: false,
                 message: "Failed to retrieve top selling items",
