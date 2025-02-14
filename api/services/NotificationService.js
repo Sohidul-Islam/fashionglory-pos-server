@@ -1,96 +1,108 @@
 const { Product, ProductVariant, Color, Size } = require('../entity');
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 
 const NotificationService = {
     async getStockAlerts(userId) {
         try {
-            // Get products with low or out of stock
+            // Get products with low or out of stock (only those without variants)
             const products = await Product.findAll({
                 where: {
                     UserId: userId,
                     [Op.or]: [
                         {
-                            quantity: { [Op.lte]: sequelize.col('alertQuantity') }
+                            stock: { [Op.lte]: Sequelize.col('Product.alertQuantity') }
                         },
                         {
-                            quantity: 0
+                            stock: 0
                         }
                     ]
                 },
+                include: [{
+                    model: ProductVariant,
+                    attributes: ['id'],
+                    required: false
+                }],
+                having: Sequelize.literal('COUNT(ProductVariants.id) = 0'),
+                group: ['Product.id'],
                 attributes: [
                     'id',
                     'name',
                     'sku',
-                    'quantity',
+                    'stock',
                     'alertQuantity'
                 ]
             });
 
-            // Get variants with low or out of stock
-            const variants = await ProductVariant.findAll({
+            // Get products with variants that have low or out of stock
+            const productsWithVariants = await Product.findAll({
                 where: {
-                    [Op.or]: [
+                    UserId: userId
+                },
+                include: [{
+                    model: ProductVariant,
+                    where: {
+                        [Op.or]: [
+                            {
+                                quantity: { [Op.lte]: Sequelize.col('Product.alertQuantity') }
+                            },
+                            {
+                                quantity: 0
+                            }
+                        ]
+                    },
+                    include: [
                         {
-                            quantity: { [Op.lte]: sequelize.col('alertQuantity') }
+                            model: Color,
+                            attributes: ['name']
                         },
                         {
-                            quantity: 0
+                            model: Size,
+                            attributes: ['name']
                         }
+                    ],
+                    attributes: [
+                        'id',
+                        'sku',
+                        'quantity',
+                        'alertQuantity'
                     ]
-                },
-                include: [
-                    {
-                        model: Product,
-                        where: { UserId: userId },
-                        attributes: ['name']
-                    },
-                    {
-                        model: Color,
-                        attributes: ['name']
-                    },
-                    {
-                        model: Size,
-                        attributes: ['name']
-                    }
-                ],
-                attributes: [
-                    'id',
-                    'sku',
-                    'quantity',
-                    'alertQuantity'
-                ]
+                }],
+                attributes: ['id', 'name']
             });
 
             // Format notifications
             const notifications = [
-                // Product notifications
+                // Product notifications (for products without variants)
                 ...products.map(product => ({
                     type: 'product',
                     id: product.id,
                     name: product.name,
                     sku: product.sku,
-                    currentStock: product.quantity,
+                    currentStock: product.stock,
                     alertQuantity: product.alertQuantity,
-                    status: product.quantity === 0 ? 'out_of_stock' : 'low_stock',
-                    message: product.quantity === 0
+                    status: product.stock === 0 ? 'out_of_stock' : product.stock <= product?.alertQuantity ? 'low_stock' : 'available',
+                    message: product.stock === 0
                         ? `${product.name} is out of stock!`
-                        : `${product.name} is running low on stock (${product.quantity} remaining)`
+                        : `${product.name} is running low on stock (${product.stock} remaining)`
                 })),
 
                 // Variant notifications
-                ...variants.map(variant => ({
-                    type: 'variant',
-                    id: variant.id,
-                    name: `${variant.Product.name} (${variant.Color.name} - ${variant.Size.name})`,
-                    sku: variant.sku,
-                    currentStock: variant.quantity,
-                    alertQuantity: variant.alertQuantity,
-                    status: variant.quantity === 0 ? 'out_of_stock' : 'low_stock',
-                    message: variant.quantity === 0
-                        ? `${variant.Product.name} (${variant.Color.name} - ${variant.Size.name}) is out of stock!`
-                        : `${variant.Product.name} (${variant.Color.name} - ${variant.Size.name}) is running low on stock (${variant.quantity} remaining)`
-                }))
-            ];
+                ...productsWithVariants.flatMap(product =>
+                    product.ProductVariants.map(variant => ({
+                        type: 'variant',
+                        productId: product.id,
+                        variantId: variant.id,
+                        name: `${product.name} (${variant.Color.name} - ${variant.Size.name})`,
+                        sku: variant.sku,
+                        currentStock: variant.quantity,
+                        alertQuantity: variant.alertQuantity,
+                        status: variant.quantity === 0 ? 'out_of_stock' : variant.quantity <= variant.alertQuantity ? 'low_stock' : "available",
+                        message: variant.quantity === 0
+                            ? `${product.name} (${variant.Color.name} - ${variant.Size.name}) is out of stock!`
+                            : `${product.name} (${variant.Color.name} - ${variant.Size.name}) is running low on stock (${variant.quantity} remaining)`
+                    }))
+                )
+            ].filter((item) => item?.status !== "available");
 
             // Sort notifications (out of stock first, then low stock)
             notifications.sort((a, b) => {
@@ -116,6 +128,7 @@ const NotificationService = {
             };
 
         } catch (error) {
+            console.error(error);
             return {
                 status: false,
                 message: "Failed to retrieve stock alerts",

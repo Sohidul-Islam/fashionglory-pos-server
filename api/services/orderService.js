@@ -7,14 +7,13 @@ const OrderService = {
     async create(orderData, userId) {
         const transaction = await sequelize.transaction();
         try {
-            console.log({ orderData })
             // Validate and calculate prices for all items
             const { validatedItems, subtotal } = await this.validateOrderItems(orderData?.items, userId, transaction);
 
             // Calculate tax and total
-            const tax = (orderData.tax || 0) * subtotal / 100;
-            const discount = orderData.discount || 0;
-            const total = subtotal + tax - discount;
+            const tax = 10 * subtotal / 100;
+            const discount = validatedItems.discount || 0;
+            const total = subtotal + tax;
 
             // Generate unique order number
             const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -548,8 +547,6 @@ const OrderService = {
         const validatedItems = [];
         let subtotal = 0;
 
-        console.log({ items })
-
         for (const item of items) {
             const { productId, variantId, quantity } = item;
 
@@ -601,13 +598,21 @@ const OrderService = {
             // Calculate item subtotal with any applicable discounts
             let itemPrice = finalPrice;
 
+
             if (product.discountType && product.discountAmount) {
                 if (product.discountType === 'percentage') {
                     itemPrice = finalPrice * (1 - product.discountAmount / 100);
+
                 } else if (product.discountType === 'amount') {
                     itemPrice = finalPrice - product.discountAmount;
                 }
             }
+
+            const discountPrice = finalPrice - itemPrice;
+
+
+
+            itemPrice = itemPrice + itemPrice * (product.vat / 100)
 
             const itemSubtotal = itemPrice * quantity;
             subtotal += itemSubtotal;
@@ -618,6 +623,7 @@ const OrderService = {
                 quantity,
                 unitPrice: itemPrice,
                 subtotal: itemSubtotal,
+                discount: discountPrice,
                 currentStock,
                 product,
                 variant
@@ -625,6 +631,116 @@ const OrderService = {
         }
 
         return { validatedItems, subtotal };
+    },
+
+    async getSalesChartData(userId, query = {}) {
+        try {
+            const { startDate, endDate } = query;
+
+            if (!startDate || !endDate) {
+                throw new Error("Start date and end date are required");
+            }
+
+            const whereClause = {
+                UserId: userId,
+                orderStatus: 'completed',
+                orderDate: {
+                    [Op.between]: [new Date(startDate), new Date(endDate)]
+                }
+            };
+
+            // Calculate date difference to determine report type
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+            // If date range is within one month, show daily report
+            const type = diffDays <= 31 ? 'daily' : 'monthly';
+            const groupByFormat = type === 'daily'
+                ? 'DATE(orderDate)'
+                : "DATE_FORMAT(orderDate, '%Y-%m')";
+
+            const salesData = await Order.findAll({
+                where: whereClause,
+                attributes: [
+                    [sequelize.literal(groupByFormat), 'date'],
+                    [sequelize.fn('SUM', sequelize.col('total')), 'sales'],
+                    [sequelize.fn('SUM', sequelize.col('discount')), 'discounts'],
+                    [sequelize.fn('COUNT', sequelize.col('Order.id')), 'orderCount'],
+                    [sequelize.fn('SUM', sequelize.col('tax')), 'tax']
+                ],
+                include: [{
+                    model: OrderItem,
+                    attributes: [],
+                    include: [{
+                        model: Product,
+                        attributes: []
+                    }]
+                }],
+                group: [sequelize.literal(groupByFormat)],
+                order: [sequelize.literal('date ASC')]
+            });
+
+
+            // Format the data
+            const formattedData = salesData.map(item => {
+                const date = new Date(item.getDataValue('date'));
+                const name = type === 'daily'
+                    ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                    : date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
+                return {
+                    name,
+                    date: item.getDataValue('date'),
+                    sales: Number(item.getDataValue('sales')),
+                    discounts: Number(item.getDataValue('discounts')),
+                    orderCount: Number(item.getDataValue('orderCount')),
+                    tax: Number(item.getDataValue('tax')),
+                    averageOrderValue: Number(
+                        (item.getDataValue('sales') / item.getDataValue('orderCount')).toFixed(2)
+                    )
+                };
+            });
+
+            // Calculate summary
+            const summary = formattedData.reduce((acc, curr) => {
+                acc.totalSales += curr.sales;
+                acc.totalDiscounts += curr.discounts;
+                acc.totalOrders += curr.orderCount;
+                acc.totalTax += curr.tax;
+                return acc;
+            }, {
+                totalSales: 0,
+                totalDiscounts: 0,
+                totalOrders: 0,
+                totalTax: 0
+            });
+
+            summary.averageOrderValue = Number(
+                (summary.totalSales / summary.totalOrders).toFixed(2)
+            );
+
+            return {
+                status: true,
+                message: `Sales report generated successfully`,
+                data: {
+                    chartData: formattedData,
+                    summary,
+                    period: type,
+                    startDate,
+                    endDate,
+                    totalDays: diffDays
+                }
+            };
+
+        } catch (error) {
+            console.error(error);
+            return {
+                status: false,
+                message: "Failed to generate sales chart data",
+                error: error.message
+            };
+        }
     }
 };
 

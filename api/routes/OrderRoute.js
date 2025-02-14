@@ -53,4 +53,10 @@ router.get('/report/top-customers', AuthService.authenticate, requestHandler(nul
     res.status(result.status ? 200 : 400).json(result);
 }));
 
+// Get sales chart data
+router.get('/report/chart/sales', AuthService.authenticate, requestHandler(null, async (req, res) => {
+    const result = await OrderService.getSalesChartData(req.user.id, req.query);
+    res.status(result.status ? 200 : 400).json(result);
+}));
+
 module.exports = router;
