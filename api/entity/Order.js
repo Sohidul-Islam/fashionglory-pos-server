@@ -11,7 +11,7 @@ const Order = sequelize.define('Order', {
     orderNumber: {
         type: Sequelize.STRING,
         allowNull: false,
-        unique: true,
+        unique: "orderNumber",
         comment: "Unique order reference number"
     },
     customerName: {

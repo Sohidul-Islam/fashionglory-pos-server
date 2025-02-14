@@ -6,11 +6,13 @@ const requestHandler = require('../utils/requestHandler');
 const router = express.Router();
 
 router.post('/', AuthService.authenticate, requestHandler(null, async (req, res) => {
-    const result = await ProductVariantService.create(req.body);
+    const UserId = req?.user?.id || null;
+    const result = await ProductVariantService.create(req.body, UserId);
     res.status(result.status ? 201 : 400).json(result);
 }));
 
 router.get('/', AuthService.authenticate, requestHandler(null, async (req, res) => {
+    const UserId = req?.user?.id || null;
     const result = await ProductVariantService.getAll(req.query);
     res.status(result.status ? 200 : 400).json(result);
 }));

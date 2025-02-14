@@ -56,23 +56,20 @@ const ProductVariantService = {
         }
     },
 
-    async getAll(query = {}, userId) {
+    async getAll(query = {}) {
         try {
             const variants = await ProductVariant.findAll({
                 where: query,
                 include: [
                     {
                         model: Product,
-                        where: { UserId: userId },
                         required: true
                     },
                     {
                         model: Color,
-                        where: { UserId: userId }
                     },
                     {
                         model: Size,
-                        where: { UserId: userId }
                     }
                 ]
             });

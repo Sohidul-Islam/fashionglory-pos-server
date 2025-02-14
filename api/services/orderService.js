@@ -51,7 +51,8 @@ const OrderService = {
                     ProductVariantId: variantId,
                     quantity,
                     unitPrice,
-                    subtotal
+                    subtotal,
+                    purchasePrice: Number(product?.purchasePrice || 0)
                 }, { transaction });
 
                 // Update stock
@@ -356,14 +357,15 @@ const OrderService = {
                 items: order.OrderItems.map(item => {
                     let productName, sku, details;
 
-                    if (item.Product) {
-                        productName = item.Product.name;
-                        sku = item.Product.sku;
-                        details = '';
-                    } else if (item.ProductVariant) {
+                    if (item.ProductVariant) {
                         productName = item.ProductVariant.Product.name;
                         sku = item.ProductVariant.sku;
                         details = `${item.ProductVariant.Color.name} - ${item.ProductVariant.Size.name}`;
+                    }
+                    else if (item.Product) {
+                        productName = item.Product.name;
+                        sku = item.Product.sku;
+                        details = '';
                     }
 
                     return {
@@ -598,6 +600,7 @@ const OrderService = {
 
             // Calculate item subtotal with any applicable discounts
             let itemPrice = finalPrice;
+
             if (product.discountType && product.discountAmount) {
                 if (product.discountType === 'percentage') {
                     itemPrice = finalPrice * (1 - product.discountAmount / 100);

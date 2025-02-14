@@ -31,13 +31,15 @@ if (process.env.NODE_ENV === 'development') {
         {
             host: process.env.MYSQLHOST_DEV,
             dialect: 'mysql',
-            logging: process.env.logging === 'true',
+            logging: false,
             port: process.env.PORT
         }
     );
 } else {
     sequelize = new Sequelize(
-        "mysql://uog4ysk637odggcp:s9rfzvRg1MV5s6G55KI5@beukpt9myo2zezgwjcj0-mysql.services.clever-cloud.com:3306/beukpt9myo2zezgwjcj0"
+        "mysql://uog4ysk637odggcp:s9rfzvRg1MV5s6G55KI5@beukpt9myo2zezgwjcj0-mysql.services.clever-cloud.com:3306/beukpt9myo2zezgwjcj0", {
+        logging: false
+    }
     );
 
     // sequelize = new Sequelize(
