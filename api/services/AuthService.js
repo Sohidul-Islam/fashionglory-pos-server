@@ -17,7 +17,7 @@ const AuthService = {
             // await EmailService.sendVerificationEmail(user);
 
             return {
-                success: true,
+                status: true,
                 message: 'Registration successful. Please check your email to verify your account.',
                 user: {
                     id: user.id,
@@ -45,7 +45,7 @@ const AuthService = {
             });
 
             return {
-                success: true,
+                status: true,
                 message: 'Email verified successfully'
             };
         } catch (error) {
@@ -60,9 +60,9 @@ const AuthService = {
                 throw new Error('User not found');
             }
 
-            if (!user.isVerified) {
-                throw new Error('Please verify your email before logging in');
-            }
+            // if (!user.isVerified) {
+            //     throw new Error('Please verify your email before logging in');
+            // }
 
             const isPasswordValid = await bcrypt.compare(password, user.password);
             
