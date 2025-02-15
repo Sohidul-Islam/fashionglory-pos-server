@@ -21,6 +21,7 @@ const AuthService = {
             }
 
             const isPasswordValid = await bcrypt.compare(password, user.password);
+            
             if (!isPasswordValid) {
                 return { status: false, message: "Invalid Password", data: null };
             }
@@ -28,6 +29,7 @@ const AuthService = {
             const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '15d' });
             return { status: true, message: "Login successful", data: { user, token } };
         } catch (error) {
+            console.log({error})
             return { status: false, message: "Login failed", data: null, error };
         }
     },

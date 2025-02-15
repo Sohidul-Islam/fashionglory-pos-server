@@ -322,7 +322,11 @@ const OrderService = {
                     include: [
                         {
                             model: Product,
-                            attributes: ['name', 'sku']
+                            attributes: ['name', 'sku'],
+                            include: [
+                                { model: Color, attributes: ['name'] },
+                                { model: Size, attributes: ['name'] }
+                            ]
                         },
                         {
                             model: ProductVariant,
@@ -364,7 +368,7 @@ const OrderService = {
                     else if (item.Product) {
                         productName = item.Product.name;
                         sku = item.Product.sku;
-                        details = '';
+                        details = `${item.Product.Color.name} - ${item.Product.Size.name}`;
                     }
 
                     return {
@@ -391,12 +395,12 @@ const OrderService = {
                 },
                 orderStatus: order.orderStatus,
                 businessInfo: {
-                    name: "Your Business Name", // You might want to make this configurable
-                    address: "Your Business Address",
-                    phone: "Your Business Phone",
-                    email: "Your Business Email",
-                    website: "Your Business Website",
-                    taxId: "Your Tax ID"
+                    name: "FG-POS", // You might want to make this configurable
+                    address: "162/26 NaNai Road, PaTong, Kathu, Phuket- 83150, Thailand.",
+                    phone: "+66910414319",
+                    email: "support@fashiongloryltd.com",
+                    website: "https://fashion-glory-pos-system.vercel.app",
+                    taxId: "123456"
                 }
             };
 

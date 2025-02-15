@@ -35,6 +35,12 @@ const ProductService = {
                         model: Unit,
                     },
                     {
+                        model: Color,
+                    },
+                    {
+                        model: Size,
+                    },
+                    {
                         model: ProductVariant,
                         include: [
                             {
@@ -72,6 +78,12 @@ const ProductService = {
                     {
                         model: Unit,
                         where: { UserId: userId }
+                    },
+                    {
+                        model: Color,
+                    },
+                    {
+                        model: Size,
                     },
                     {
                         model: ProductVariant,

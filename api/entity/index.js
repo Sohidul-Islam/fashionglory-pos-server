@@ -23,6 +23,8 @@ Product.belongsTo(User);
 Product.belongsTo(Category);
 Product.belongsTo(Brand);
 Product.belongsTo(Unit);
+Product.belongsTo(Size);
+Product.belongsTo(Color);
 
 
 // Category Associations
