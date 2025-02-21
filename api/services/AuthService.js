@@ -227,7 +227,7 @@ const AuthService = {
         }
     },
 
-    async getAllUsers(query) {
+    async getAllUsers(query, UserId) {
         try {
             const page = parseInt(query.page) || 1;
             const pageSize = parseInt(query.pageSize) || 10;
@@ -236,11 +236,18 @@ const AuthService = {
             // Build where clause
             const whereClause = {};
 
+
+            const getUserData = await User.findByPk(UserId);
+
+            if (getUserData.accountType !== "super admin") {
+                whereClause.id = UserId;
+            }
+
             // Add search functionality
             if (query.searchKey) {
                 whereClause[Op.or] = [
                     { email: { [Op.like]: `%${query.searchKey}%` } },
-                    { phone: { [Op.like]: `%${query.searchKey}%` } }
+                    { phoneNumber: { [Op.like]: `%${query.searchKey}%` } }
                 ];
             }
 

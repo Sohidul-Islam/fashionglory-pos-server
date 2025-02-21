@@ -26,8 +26,10 @@ router.post('/profile', AuthService.authenticate, requestHandler(null, async (re
     res.status(200).json(result);
 }));
 
-router.get('/users', requestHandler(null, async (req, res) => {
-    const result = await AuthService.getAllUsers(req?.query);
+router.get('/users', AuthService.authenticate, requestHandler(null, async (req, res) => {
+    const UserId = req?.user?.id || null;
+
+    const result = await AuthService.getAllUsers(req?.query, UserId);
     res.status(200).json(result);
 }));
 
