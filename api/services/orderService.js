@@ -108,17 +108,74 @@ const OrderService = {
 
     async getAll(query = {}, userId) {
         try {
-            const whereClause = Object.keys(query).reduce((acc, key) => {
-                if (query[key] !== undefined && query[key] !== null && query[key] !== '') {
-                    acc[key] = query[key];
-                }
-                return acc;
-            }, { UserId: userId });
+            const page = parseInt(query.page) || 1;
+            const pageSize = parseInt(query.pageSize) || 10;
+            const offset = (page - 1) * pageSize;
 
-            const orders = await Order.findAll({ where: whereClause });
-            return { status: true, message: "Orders retrieved successfully", data: orders };
+            // Build where clause
+            const whereClause = { UserId: userId };
+
+            // Add other filters if provided
+            if (query.orderStatus) whereClause.orderStatus = query.orderStatus;
+            if (query.paymentStatus) whereClause.paymentStatus = query.paymentStatus;
+            if (query.paymentMethod) whereClause.paymentMethod = query.paymentMethod;
+
+            // Add date range filter if provided
+            if (query.startDate && query.endDate) {
+                whereClause.orderDate = {
+                    [Op.between]: [new Date(query.startDate), new Date(query.endDate)]
+                };
+            }
+
+            // Get total count for pagination
+            const totalCount = await Order.count({ where: whereClause });
+            const totalPages = Math.ceil(totalCount / pageSize);
+
+            // Get paginated orders with related data
+            const orders = await Order.findAll({
+                where: whereClause,
+                include: [{
+                    model: OrderItem,
+                    include: [
+                        {
+                            model: Product,
+                            attributes: ['name', 'sku']
+                        },
+                        {
+                            model: ProductVariant,
+                            include: [
+                                { model: Color, attributes: ['name'] },
+                                { model: Size, attributes: ['name'] }
+                            ]
+                        }
+                    ]
+                }],
+                order: [['orderDate', 'DESC']],
+                limit: pageSize,
+                offset: offset
+            });
+
+            return {
+                status: true,
+                message: "Orders retrieved successfully",
+                data: {
+                    orders,
+                    pagination: {
+                        page,
+                        pageSize,
+                        totalPages,
+                        totalItems: totalCount,
+                        hasNextPage: page < totalPages,
+                        hasPreviousPage: page > 1
+                    }
+                }
+            };
         } catch (error) {
-            return { status: false, message: "Failed to retrieve orders", data: null, error };
+            return {
+                status: false,
+                message: "Failed to retrieve orders",
+                error: error.message
+            };
         }
     },
 
