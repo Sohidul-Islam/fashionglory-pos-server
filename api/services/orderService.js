@@ -673,17 +673,12 @@ const OrderService = {
                     [sequelize.fn('COUNT', sequelize.col('Order.id')), 'orderCount'],
                     [sequelize.fn('SUM', sequelize.col('tax')), 'tax']
                 ],
-                include: [{
-                    model: OrderItem,
-                    attributes: [],
-                    include: [{
-                        model: Product,
-                        attributes: []
-                    }]
-                }],
                 group: [sequelize.literal(groupByFormat)],
                 order: [sequelize.literal('date ASC')]
             });
+
+
+
 
 
             // Format the data
@@ -705,6 +700,8 @@ const OrderService = {
                     )
                 };
             });
+
+
 
             // Calculate summary
             const summary = formattedData.reduce((acc, curr) => {
