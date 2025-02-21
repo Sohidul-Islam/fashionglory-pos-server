@@ -18,6 +18,7 @@ const sizeRoutes = require('./routes/sizeRoutes');
 const productVariantRoutes = require('./routes/productVariantRoutes');
 const stockRoutes = require('./routes/stockRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const stateMentRoutes = require("./routes/statementRoutes")
 const port = process.env.SERVER_PORT || 3000
 
 app.use(cors())
@@ -40,6 +41,7 @@ app.use("/api/sizes", requestHandler(null, sizeRoutes));
 app.use("/api/product-variants", requestHandler(null, productVariantRoutes));
 app.use("/api/stock", requestHandler(null, stockRoutes));
 app.use("/api/notifications", requestHandler(null, notificationRoutes));
+app.use("/api/statement", requestHandler(null, stateMentRoutes))
 
 app.get("/", function (req, res) {
     res.send("welcome pos solution family!");

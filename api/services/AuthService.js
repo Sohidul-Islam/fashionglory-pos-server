@@ -33,7 +33,7 @@ const AuthService = {
     async verifyEmail(token) {
         try {
             const user = await User.findOne({ where: { verificationToken: token } });
-            
+
             if (!user) {
                 throw new Error('Invalid verification token');
             }
@@ -65,7 +65,7 @@ const AuthService = {
             // }
 
             const isPasswordValid = await bcrypt.compare(password, user.password);
-            
+
             if (!isPasswordValid) {
                 return { status: false, message: "Invalid Password", data: null };
             }
@@ -122,6 +122,10 @@ const AuthService = {
             const user = await User.findByPk(decoded.id);
             if (!user) {
                 return res.status(404).json({ status: false, message: "User not found", data: null });
+            }
+
+            if (user.accountStatus === "inactive") {
+                return res.status(404).json({ status: false, message: "User is not active. Please contact with support", data: null });
             }
 
             req.user = user;

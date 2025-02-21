@@ -54,6 +54,10 @@ const User = sequelize.define(
             defaultValue: "inactive",
             comment: "Status of the user account",
         },
+        accountType: {
+            type: Sequelize.ENUM("super admin", "admin", "default"),
+            defaultValue: "default"
+        },
         isVerified: {
             type: Sequelize.BOOLEAN,
             allowNull: false,
