@@ -115,6 +115,16 @@ const OrderService = {
             // Build where clause
             const whereClause = { UserId: userId };
 
+            // Add search functionality
+            if (query.searchKey) {
+                whereClause[Op.or] = [
+                    { orderNumber: { [Op.like]: `%${query.searchKey}%` } },
+                    { customerName: { [Op.like]: `%${query.searchKey}%` } },
+                    { customerPhone: { [Op.like]: `%${query.searchKey}%` } },
+                    { customerEmail: { [Op.like]: `%${query.searchKey}%` } }
+                ];
+            }
+
             // Add other filters if provided
             if (query.orderStatus) whereClause.orderStatus = query.orderStatus;
             if (query.paymentStatus) whereClause.paymentStatus = query.paymentStatus;
@@ -123,7 +133,10 @@ const OrderService = {
             // Add date range filter if provided
             if (query.startDate && query.endDate) {
                 whereClause.orderDate = {
-                    [Op.between]: [new Date(query.startDate), new Date(query.endDate)]
+                    [Op.between]: [
+                        new Date(new Date(query.startDate).setHours(0, 0, 0)),
+                        new Date(new Date(query.endDate).setHours(23, 59, 59))
+                    ]
                 };
             }
 
