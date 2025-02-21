@@ -2,7 +2,6 @@ const express = require('express');
 const { AuthService } = require('../services');
 const requestHandler = require('../utils/requestHandler');
 
-
 const router = express.Router();
 
 router.post('/register', requestHandler(null, async (req, res) => {
@@ -27,9 +26,29 @@ router.post('/profile', AuthService.authenticate, requestHandler(null, async (re
     res.status(200).json(result);
 }));
 
-router.post('/reset-password', AuthService.authenticate, requestHandler(null, async (req, res) => {
-    const result = await AuthService.resetPassword(req.body.email, req.body.newPassword);
+// router.post('/reset-password', AuthService.authenticate, requestHandler(null, async (req, res) => {
+//     const result = await AuthService.resetPassword(req.body.email, req.body.newPassword);
+//     res.status(200).json(result);
+// }));
+
+router.post('/verify-email', requestHandler(null, async (req, res) => {
+    const result = await AuthService.verifyEmail(req?.body?.token, req.body.email);
+    res.status(200).json(result);
+}));
+// Password reset routes
+router.post('/request-reset', requestHandler(null, async (req, res) => {
+    const result = await AuthService.requestPasswordReset(req.body.email);
     res.status(200).json(result);
 }));
 
-module.exports = router; 
+router.get('/verify-reset-token/:token', requestHandler(null, async (req, res) => {
+    const result = await AuthService.verifyResetToken(req.params.token);
+    res.status(200).json(result);
+}));
+
+router.post('/reset-password', requestHandler(null, async (req, res) => {
+    const result = await AuthService.resetPassword(req.body.token, req.body.newPassword);
+    res.status(200).json(result);
+}));
+
+module.exports = router;

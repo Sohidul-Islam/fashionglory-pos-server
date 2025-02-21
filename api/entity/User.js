@@ -69,6 +69,14 @@ const User = sequelize.define(
             allowNull: true,
             comment: "Token for email verification",
         },
+        resetTokenExpiry: {
+            type: Sequelize.DATE,
+            defaultValue: null
+        },
+        resetToken: {
+            type: Sequelize.STRING,
+            defaultValue: null
+        },
         isLoggedIn: {
             type: Sequelize.BOOLEAN,
             allowNull: false,

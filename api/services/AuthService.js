@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { User } = require('../entity');
 const EmailService = require('./EmailService');
+const { Op } = require('sequelize');
 
 const AuthService = {
     async register(userData) {
@@ -13,6 +14,8 @@ const AuthService = {
                 accountStatus: 'inactive',
                 isVerified: false
             });
+
+            await EmailService.sendVerificationEmail(user)
 
             // await EmailService.sendVerificationEmail(user);
 
@@ -30,9 +33,9 @@ const AuthService = {
         }
     },
 
-    async verifyEmail(token) {
+    async verifyEmail(token, email) {
         try {
-            const user = await User.findOne({ where: { verificationToken: token } });
+            const user = await User.findOne({ where: { verificationToken: token, email } });
 
             if (!user) {
                 throw new Error('Invalid verification token');
@@ -40,7 +43,6 @@ const AuthService = {
 
             await user.update({
                 isVerified: true,
-                accountStatus: 'active',
                 verificationToken: null
             });
 
@@ -60,9 +62,9 @@ const AuthService = {
                 throw new Error('User not found');
             }
 
-            // if (!user.isVerified) {
-            //     throw new Error('Please verify your email before logging in');
-            // }
+            if (!user.isVerified) {
+                throw new Error('Please verify your email before logging in');
+            }
 
             const isPasswordValid = await bcrypt.compare(password, user.password);
 
@@ -125,7 +127,7 @@ const AuthService = {
             }
 
             if (user.accountStatus === "inactive") {
-                return res.status(404).json({ status: false, message: "User is not active. Please contact with support", data: null });
+                return res.status(401).json({ status: false, message: "User is not active. Please contact with support", data: null });
             }
 
             req.user = user;
@@ -135,18 +137,93 @@ const AuthService = {
         }
     },
 
-    async resetPassword(email, newPassword) {
+    async requestPasswordReset(email) {
         try {
             const user = await User.findOne({ where: { email } });
+
             if (!user) {
-                return { status: false, message: "User not found", data: null };
+                throw new Error('User not found');
             }
 
-            const hashedPassword = await bcrypt.hash(newPassword, 10);
-            await user.update({ password: hashedPassword });
-            return { status: true, message: "Password reset successful", data: user };
+            // Generate reset token
+            const resetToken = jwt.sign(
+                { userId: user.id },
+                process.env.JWT_SECRET,
+                { expiresIn: '1h' }
+            );
+
+            // Save reset token and expiry in database
+            await user.update({
+                resetToken: resetToken,
+                resetTokenExpiry: new Date(Date.now() + 3600000) // 1 hour from now
+            });
+
+            // Send reset email
+            await EmailService.sendResetPasswordEmail(email, resetToken);
+
+            return {
+                status: true,
+                message: 'Password reset link sent to your email',
+                data: null
+            };
         } catch (error) {
-            return { status: false, message: "Password reset failed", data: null };
+            throw error;
+        }
+    },
+
+    async verifyResetToken(token) {
+        try {
+            // Verify token
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+            const user = await User.findOne({
+                where: {
+                    id: decoded.userId,
+                    resetToken: token,
+                    resetTokenExpiry: {
+                        [Op.gt]: new Date()
+                    }
+                }
+            });
+
+            if (!user) {
+                throw new Error('Invalid or expired reset token');
+            }
+
+            return {
+                status: true,
+                message: 'Token verified successfully',
+                data: { userId: user.id }
+            };
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    async resetPassword(token, newPassword) {
+        try {
+            // Verify token first
+            const { data: { userId } } = await this.verifyResetToken(token);
+
+            const user = await User.findByPk(userId);
+
+            // Hash new password
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+            // Update password and clear reset token
+            await user.update({
+                password: hashedPassword,
+                resetToken: null,
+                resetTokenExpiry: null
+            });
+
+            return {
+                status: true,
+                message: 'Password reset successful',
+                data: null
+            };
+        } catch (error) {
+            throw error;
         }
     }
 };
