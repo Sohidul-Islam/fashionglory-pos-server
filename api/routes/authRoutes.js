@@ -26,10 +26,11 @@ router.post('/profile', AuthService.authenticate, requestHandler(null, async (re
     res.status(200).json(result);
 }));
 
-// router.post('/reset-password', AuthService.authenticate, requestHandler(null, async (req, res) => {
-//     const result = await AuthService.resetPassword(req.body.email, req.body.newPassword);
-//     res.status(200).json(result);
-// }));
+router.get('/users', requestHandler(null, async (req, res) => {
+    const result = await AuthService.getAllUsers(req?.query);
+    res.status(200).json(result);
+}));
+
 
 router.post('/verify-email', requestHandler(null, async (req, res) => {
     const result = await AuthService.verifyEmail(req?.body?.token, req.body.email);
@@ -50,5 +51,7 @@ router.post('/reset-password', requestHandler(null, async (req, res) => {
     const result = await AuthService.resetPassword(req.body.token, req.body.newPassword);
     res.status(200).json(result);
 }));
+
+
 
 module.exports = router;

@@ -225,6 +225,65 @@ const AuthService = {
         } catch (error) {
             throw error;
         }
+    },
+
+    async getAllUsers(query) {
+        try {
+            const page = parseInt(query.page) || 1;
+            const pageSize = parseInt(query.pageSize) || 10;
+            const offset = (page - 1) * pageSize;
+
+            // Build where clause
+            const whereClause = {};
+
+            // Add search functionality
+            if (query.searchKey) {
+                whereClause[Op.or] = [
+                    { email: { [Op.like]: `%${query.searchKey}%` } },
+                    { phone: { [Op.like]: `%${query.searchKey}%` } }
+                ];
+            }
+
+            // Add filters
+            if (query.accountStatus) whereClause.accountStatus = query.accountStatus;
+            if (query.accountType) whereClause.accountType = query.accountType;
+
+            const { count, rows } = await User.findAndCountAll({
+                where: whereClause,
+                order: [['createdAt', 'DESC']],
+                limit: pageSize,
+                offset
+            });
+
+            const totalPages = Math.ceil(count / pageSize);
+
+            return {
+                status: true,
+                message: "Users retrieved successfully",
+                data: {
+                    users: rows,
+                    pagination: {
+                        // totalItems: count,
+                        // totalPages,
+                        // currentPage: page,
+                        // itemsPerPage: pageSize,
+                        // hasNextPage: page < totalPages,
+                        // hasPreviousPage: page > 1,
+
+                        page,
+                        pageSize,
+                        totalPages,
+                        totalItems: count,
+                        hasNextPage: page < totalPages,
+                        hasPreviousPage: page > 1
+                    }
+                }
+            };
+
+        } catch (error) {
+            console.log({ error })
+            throw error;
+        }
     }
 };
 
