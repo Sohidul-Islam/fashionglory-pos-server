@@ -36,7 +36,7 @@ class StatementService {
                     },
                     {
                         model: Order,
-                        // where: whereClause
+                        where: whereClause
                     }
                 ],
                 // group: ['ProductId', 'ProductVariantId'],

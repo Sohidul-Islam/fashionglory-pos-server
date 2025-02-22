@@ -1,4 +1,4 @@
-const { Order, OrderItem, Product, ProductVariant, StockHistory, Color, Size } = require('../entity');
+const { Order, OrderItem, Product, ProductVariant, StockHistory, Color, Size, User } = require('../entity');
 const sequelize = require('../db');
 const { Op } = require('sequelize');
 
@@ -382,9 +382,14 @@ const OrderService = {
 
     async generateInvoice(orderId, userId) {
         try {
+
+
+            const userData = await User.findByPk(userId);
+
+
             const order = await Order.findOne({
                 where: {
-                    id: orderId,
+                    id: Number(orderId),
                     UserId: userId
                 },
                 include: [{
@@ -392,18 +397,17 @@ const OrderService = {
                     include: [
                         {
                             model: Product,
-                            attributes: ['name', 'sku'],
                             include: [
-                                { model: Color, attributes: ['name'] },
-                                { model: Size, attributes: ['name'] }
+                                { model: Color},
+                                { model: Size }
                             ]
                         },
                         {
                             model: ProductVariant,
                             include: [
-                                { model: Product, attributes: ['name'] },
-                                { model: Color, attributes: ['name'] },
-                                { model: Size, attributes: ['name'] }
+                                { model: Product},
+                                { model: Color},
+                                { model: Size }
                             ]
                         }
                     ]
@@ -431,14 +435,14 @@ const OrderService = {
                     let productName, sku, details;
 
                     if (item.ProductVariant) {
-                        productName = item.ProductVariant.Product.name;
-                        sku = item.ProductVariant.sku;
-                        details = `${item.ProductVariant.Color.name} - ${item.ProductVariant.Size.name}`;
+                        productName = item.ProductVariant?.Product?.name||"";
+                        sku = item?.ProductVariant?.sku;
+                        details = `${item?.ProductVariant?.Color?.name} - ${item?.ProductVariant?.Size?.name}`;
                     }
                     else if (item.Product) {
-                        productName = item.Product.name;
-                        sku = item.Product.sku;
-                        details = `${item.Product.Color.name} - ${item.Product.Size.name}`;
+                        productName = item?.Product?.name;
+                        sku = item?.Product?.sku;
+                        details = `${item?.Product?.Color?.name||""} - ${item?.Product?.Size?.name||""}`;
                     }
 
                     return {
@@ -465,11 +469,11 @@ const OrderService = {
                 },
                 orderStatus: order.orderStatus,
                 businessInfo: {
-                    name: "FG-POS", // You might want to make this configurable
-                    address: "162/26 NaNai Road, PaTong, Kathu, Phuket- 83150, Thailand.",
-                    phone: "+66910414319",
-                    email: "support@fashiongloryltd.com",
-                    website: "https://fashion-glory-pos-system.vercel.app",
+                    name: userData?.businessName ||"FG-POS", // You might want to make this configurable
+                    address: userData?.location || "162/26 NaNai Road, PaTong, Kathu, Phuket- 83150, Thailand.",
+                    phone: userData?.phoneNumber||"+66910414319",
+                    email: userData?.email || "support@fashiongloryltd.com",
+                    website: userData?.email || "https://fashion-glory-pos-system.vercel.app",
                     taxId: "123456"
                 }
             };
