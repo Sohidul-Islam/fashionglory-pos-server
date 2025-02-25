@@ -21,7 +21,7 @@ class EmailService {
         await user.update({ verificationToken: token });
 
         // Create verification URL
-        const verificationUrl = `${process.env.BASE_URL}/verify-email?token=${token}&email=${user.email}`;
+        const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${token}&email=${user.email}`;
         // Email content
         const mailOptions = {
             from: process.env.EMAIL_USER,
@@ -40,7 +40,7 @@ class EmailService {
     }
 
     async sendResetPasswordEmail(email, token) {
-        const resetLink = `${process.env.BASE_URL}/reset-password?token=${token}`;
+        const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
 
         const mailOptions = {
             from: process.env.EMAIL_USER,
