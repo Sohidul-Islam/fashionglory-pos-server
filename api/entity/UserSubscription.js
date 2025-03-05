@@ -31,7 +31,15 @@ const UserSubscription = sequelize.define("UserSubscription", {
     amount: {
         type: Sequelize.DECIMAL(10, 2),
         allowNull: false,
-    }
+    },
+    discount: {
+        type: Sequelize.DECIMAL(10, 2),
+        allowNull: true,
+    },
+    coupon: {
+        type: Sequelize.STRING,
+        allowNull: true,
+    },
 });
 
 module.exports = UserSubscription; 

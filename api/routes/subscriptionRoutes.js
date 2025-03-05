@@ -16,6 +16,11 @@ router.put('/plans/:id', AuthService.authenticate, requestHandler(null, async (r
     res.status(result.status ? 200 : 400).json(result);
 }));
 
+router.post('/plans/delete/:id', AuthService.authenticate, requestHandler(null, async (req, res) => {
+    const result = await SubscriptionService.deletePlan(req.params.id);
+    res.status(result.status ? 200 : 400).json(result);
+}));
+
 // Public routes
 router.get('/plans', requestHandler(null, async (req, res) => {
     const result = await SubscriptionService.getAllPlans(req.query);

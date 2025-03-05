@@ -38,7 +38,7 @@ const SubscriptionPlan = sequelize.define("SubscriptionPlan", {
     maxStorage: {
         type: Sequelize.STRING,
         allowNull: true,
-        defaultValue: "1GB",
+        defaultValue: "1 GB",
     },
     maxUsers: {
         type: Sequelize.INTEGER,

@@ -66,8 +66,6 @@ const SubscriptionService = {
         }
     },
 
-
-
     async updatePlan(id, updateData) {
         try {
             const plan = await SubscriptionPlan.findByPk(id);
@@ -106,7 +104,7 @@ const SubscriptionService = {
 
             // Calculate end date based on plan duration
             const startDate = new Date();
-            const endDate = new Date(startDate.getTime() + plan.duration * 24 * 60 * 60 * 1000);
+            const endDate = new Date(startDate.getTime() + plan.duration * 30 * 24 * 60 * 60 * 1000);
 
             const subscription = await UserSubscription.create({
                 UserId: userId,
@@ -157,6 +155,54 @@ const SubscriptionService = {
             return {
                 status: false,
                 message: "Failed to retrieve user subscription",
+                error: error.message
+            };
+        }
+    },
+
+    async deletePlan(id) {
+        try {
+            // Check if plan exists
+            const plan = await SubscriptionPlan.findByPk(id);
+            if (!plan) {
+                return {
+                    status: false,
+                    message: "Subscription plan not found",
+                    data: null
+                };
+            }
+
+            // Check if plan has active subscriptions
+            const activeSubscriptions = await UserSubscription.count({
+                where: {
+                    SubscriptionPlanId: id,
+                    status: 'active',
+                    endDate: {
+                        [Op.gt]: new Date()
+                    }
+                }
+            });
+
+            if (activeSubscriptions > 0) {
+                return {
+                    status: false,
+                    message: "Cannot delete plan with active subscriptions",
+                    data: null
+                };
+            }
+
+            // Delete the plan
+            await plan.destroy();
+
+            return {
+                status: true,
+                message: "Subscription plan deleted successfully",
+                data: null
+            };
+        } catch (error) {
+            return {
+                status: false,
+                message: "Failed to delete subscription plan",
                 error: error.message
             };
         }
