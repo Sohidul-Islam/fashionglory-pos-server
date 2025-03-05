@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { User } = require('../entity');
-const EmailService = require('./EmailService');
+const EmailService = require('./emailService');
 const { Op } = require('sequelize');
 
 const AuthService = {
