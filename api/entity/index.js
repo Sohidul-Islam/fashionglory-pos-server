@@ -11,6 +11,7 @@ const OrderItem = require('./OrderItem');
 const StockHistory = require('./StockHistory');
 const SubscriptionPlan = require('./SubscriptionPlan');
 const UserSubscription = require('./UserSubscription');
+const Coupon = require('./Coupon');
 
 // User Associations
 User.hasMany(Product);
@@ -87,5 +88,6 @@ module.exports = {
     OrderItem,
     StockHistory,
     SubscriptionPlan,
-    UserSubscription
+    UserSubscription,
+    Coupon
 };

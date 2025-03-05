@@ -11,6 +11,7 @@ const StockService = require("./StockService");
 const NotificationService = require("./NotificationService");
 const StatementService = require("./statementService");
 const SubscriptionService = require("./SubscriptionService");
+const CouponService = require("./CouponService");
 
 
 module.exports = {
@@ -26,5 +27,6 @@ module.exports = {
     StockService,
     NotificationService,
     StatementService,
-    SubscriptionService
+    SubscriptionService,
+    CouponService
 };

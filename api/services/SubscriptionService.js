@@ -1,5 +1,6 @@
-const { SubscriptionPlan, UserSubscription } = require('../entity');
+const { SubscriptionPlan, UserSubscription, Coupon } = require('../entity');
 const { Op } = require('sequelize');
+const CouponService = require('./CouponService');
 
 const SubscriptionService = {
     async createPlan(planData) {
@@ -41,6 +42,8 @@ const SubscriptionService = {
             };
         }
     },
+
+
 
     async getPlanById(id) {
         try {
@@ -102,6 +105,29 @@ const SubscriptionService = {
                 };
             }
 
+            let discountAmount = 0;
+            let couponCode = null;
+
+            // Validate coupon if provided
+            if (subscriptionData.couponCode) {
+                const couponValidation = await CouponService.validateCoupon(
+                    subscriptionData.couponCode,
+                    plan.price
+                );
+
+                if (couponValidation.status) {
+                    discountAmount = couponValidation.data.discountAmount;
+                    couponCode = subscriptionData.couponCode;
+
+                    // Increment coupon usage
+                    await Coupon.increment('usedCount', {
+                        where: { code: couponCode }
+                    });
+                } else {
+                    return couponValidation; // Return coupon validation error
+                }
+            }
+
             // Calculate end date based on plan duration
             const startDate = new Date();
             const endDate = new Date(startDate.getTime() + plan.duration * 30 * 24 * 60 * 60 * 1000);
@@ -112,13 +138,21 @@ const SubscriptionService = {
                 startDate,
                 endDate,
                 amount: plan.price,
-                ...subscriptionData
+                discount: discountAmount,
+                coupon: couponCode,
+                paymentMethod: subscriptionData.paymentMethod,
+                paymentStatus: subscriptionData.paymentStatus || 'pending'
             });
 
             return {
                 status: true,
                 message: "Successfully subscribed to plan",
-                data: subscription
+                data: {
+                    ...subscription.toJSON(),
+                    originalPrice: plan.price,
+                    discountAmount,
+                    finalAmount: plan.price - discountAmount
+                }
             };
         } catch (error) {
             return {
