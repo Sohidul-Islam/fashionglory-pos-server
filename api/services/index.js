@@ -9,7 +9,9 @@ const SizeService = require("./SizeService");
 const ProductVariantService = require("./ProductVariantService");
 const StockService = require("./StockService");
 const NotificationService = require("./NotificationService");
-const StatementService = require("./statementService")
+const StatementService = require("./statementService");
+const SubscriptionService = require("./SubscriptionService");
+
 
 module.exports = {
     AuthService,
@@ -23,5 +25,6 @@ module.exports = {
     ProductVariantService,
     StockService,
     NotificationService,
-    StatementService
+    StatementService,
+    SubscriptionService
 };
