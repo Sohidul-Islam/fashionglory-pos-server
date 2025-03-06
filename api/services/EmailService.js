@@ -63,6 +63,27 @@ class EmailService {
             throw new Error('Failed to send reset password email');
         }
     }
+
+    async sendSubscriptionReminder(data) {
+        const { email, userName, businessName, planName, expiryDate, daysRemaining } = data;
+
+        const subject = `Subscription Renewal Reminder - ${daysRemaining} days remaining`;
+        const html = `
+            <h2>Subscription Renewal Reminder</h2>
+            <p>Dear ${userName},</p>
+            <p>Your subscription for ${businessName} is expiring soon.</p>
+            <p><strong>Plan Details:</strong></p>
+            <ul>
+                <li>Plan: ${planName}</li>
+                <li>Expiry Date: ${new Date(expiryDate).toLocaleDateString()}</li>
+                <li>Days Remaining: ${daysRemaining}</li>
+            </ul>
+            <p>Please renew your subscription to continue using our services without interruption.</p>
+            <p>If you have any questions, please don't hesitate to contact us.</p>
+        `;
+
+        return this.sendEmail(email, subject, html);
+    }
 }
 
 module.exports = new EmailService(); 

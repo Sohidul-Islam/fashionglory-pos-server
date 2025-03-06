@@ -55,4 +55,16 @@ router.post('/payment/:id', AuthService.authenticate, AuthService.isAdmin, reque
     res.status(result.status ? 200 : 400).json(result);
 }));
 
+// Check specific subscription status
+router.get('/status/:id', AuthService.authenticate, AuthService.isAdmin, requestHandler(null, async (req, res) => {
+    const result = await SubscriptionService.checkSubscriptionStatus(req.params.id);
+    res.status(result.status ? 200 : 400).json(result);
+}));
+
+// Manually trigger subscription check for all subscriptions
+router.post('/check-all', AuthService.authenticate, AuthService.isAdmin, requestHandler(null, async (req, res) => {
+    const result = await SubscriptionService.checkAllSubscriptions();
+    res.status(result.status ? 200 : 400).json(result);
+}));
+
 module.exports = router; 

@@ -386,6 +386,88 @@ const SubscriptionService = {
                 error: error.message
             };
         }
+    },
+
+    async checkSubscriptionStatus(subscriptionId) {
+        try {
+            const subscription = await UserSubscription.findByPk(subscriptionId, {
+                include: [
+                    {
+                        model: User,
+                        attributes: ['email', 'fullName', 'businessName']
+                    },
+                    {
+                        model: SubscriptionPlan,
+                        attributes: ['name', 'price']
+                    }
+                ]
+            });
+
+            if (!subscription) {
+                return {
+                    status: false,
+                    message: "Subscription not found",
+                    data: null
+                };
+            }
+
+            const now = new Date();
+            const endDate = new Date(subscription.endDate);
+            const daysRemaining = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+
+            let status = subscription.status;
+            if (now > endDate && status === 'active') {
+                status = 'expired';
+                await subscription.update({ status: 'expired' });
+            }
+
+            return {
+                status: true,
+                message: "Subscription status checked successfully",
+                data: {
+                    ...subscription.toJSON(),
+                    daysRemaining: Math.max(0, daysRemaining),
+                    isExpired: status === 'expired'
+                }
+            };
+        } catch (error) {
+            return {
+                status: false,
+                message: "Failed to check subscription status",
+                error: error.message
+            };
+        }
+    },
+
+    async checkAllSubscriptions() {
+        try {
+            // Update expired subscriptions
+            const [updatedCount] = await UserSubscription.update(
+                { status: 'expired' },
+                {
+                    where: {
+                        status: 'active',
+                        endDate: {
+                            [Op.lt]: new Date()
+                        }
+                    }
+                }
+            );
+
+            return {
+                status: true,
+                message: "Subscription check completed",
+                data: {
+                    expiredCount: updatedCount
+                }
+            };
+        } catch (error) {
+            return {
+                status: false,
+                message: "Failed to check subscriptions",
+                error: error.message
+            };
+        }
     }
 };
 

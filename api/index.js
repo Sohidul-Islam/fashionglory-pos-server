@@ -22,6 +22,7 @@ const stateMentRoutes = require("./routes/statementRoutes")
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
 const couponRoutes = require('./routes/couponRoutes');
 const port = process.env.SERVER_PORT || 3000
+const SchedulerService = require('./services/SchedulerService');
 
 app.use(cors())
 app.use(express.json());
@@ -55,7 +56,9 @@ app.get("/", function (req, res) {
 
 app.use(errorHandler);
 
-
+// Start the schedulers
+SchedulerService.checkExpiredSubscriptions.start();
+SchedulerService.sendRenewalReminders.start();
 
 app.listen(port, () => console.log(`Server ready on port ${port}.`));
 
