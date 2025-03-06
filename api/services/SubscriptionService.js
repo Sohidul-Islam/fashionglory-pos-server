@@ -105,6 +105,17 @@ const SubscriptionService = {
                 };
             }
 
+            // Cancel all active subscriptions for this user
+            await UserSubscription.update(
+                { status: "cancelled" },
+                {
+                    where: {
+                        UserId: userId,
+                        status: "active"
+                    }
+                }
+            );
+
             let discountAmount = 0;
             let couponCode = null;
 
