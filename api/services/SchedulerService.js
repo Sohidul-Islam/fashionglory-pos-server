@@ -21,7 +21,7 @@ const SchedulerService = {
                 }
             );
 
-            console.log(`Updated ${expiredSubscriptions[1].length} expired subscriptions`);
+            console.log(`Updated ${expiredSubscriptions[1] || 0} expired subscriptions`);
         } catch (error) {
             console.error('Error checking expired subscriptions:', error);
         }

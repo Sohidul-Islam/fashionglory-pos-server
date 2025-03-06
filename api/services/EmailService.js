@@ -67,8 +67,11 @@ class EmailService {
     async sendSubscriptionReminder(data) {
         const { email, userName, businessName, planName, expiryDate, daysRemaining } = data;
 
-        const subject = `Subscription Renewal Reminder - ${daysRemaining} days remaining`;
-        const html = `
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: `Subscription Renewal Reminder - ${daysRemaining} days remaining`,
+            html: `
             <h2>Subscription Renewal Reminder</h2>
             <p>Dear ${userName},</p>
             <p>Your subscription for ${businessName} is expiring soon.</p>
@@ -80,9 +83,10 @@ class EmailService {
             </ul>
             <p>Please renew your subscription to continue using our services without interruption.</p>
             <p>If you have any questions, please don't hesitate to contact us.</p>
-        `;
+        `
+        };
 
-        return this.sendEmail(email, subject, html);
+        return this.transporter.sendMail(mailOptions);
     }
 }
 
