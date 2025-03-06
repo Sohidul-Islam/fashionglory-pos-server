@@ -1,6 +1,6 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { User } = require('../entity');
+const { User, UserSubscription, SubscriptionPlan } = require('../entity');
 const EmailService = require('./emailService');
 const { Op } = require('sequelize');
 
@@ -259,6 +259,20 @@ const AuthService = {
 
             const { count, rows } = await User.findAndCountAll({
                 where: whereClause,
+                include: [
+                    {
+                        model: UserSubscription,
+                        where: {
+                            status: "active",
+                        },
+
+                        include: [
+                            {
+                                model: SubscriptionPlan
+                            }
+                        ]
+                    }
+                ],
                 order: [['createdAt', 'DESC']],
                 limit: pageSize,
                 offset
