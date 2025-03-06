@@ -83,6 +83,11 @@ const User = sequelize.define(
             defaultValue: false,
             comment: "Tracks if the user is currently logged in",
         },
+        role: {
+            type: Sequelize.ENUM('user', 'admin'),
+            allowNull: false,
+            defaultValue: 'user'
+        },
     }
 );
 

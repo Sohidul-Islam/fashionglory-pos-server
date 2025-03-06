@@ -1,6 +1,7 @@
 const { SubscriptionPlan, UserSubscription, Coupon } = require('../entity');
 const { Op } = require('sequelize');
 const CouponService = require('./CouponService');
+const { User } = require('../entity');
 
 const SubscriptionService = {
     async createPlan(planData) {
@@ -42,8 +43,6 @@ const SubscriptionService = {
             };
         }
     },
-
-
 
     async getPlanById(id) {
         try {
@@ -248,6 +247,142 @@ const SubscriptionService = {
             return {
                 status: false,
                 message: "Failed to delete subscription plan",
+                error: error.message
+            };
+        }
+    },
+
+    async getAllUserSubscriptions(query = {}) {
+        try {
+            const page = parseInt(query.page) || 1;
+            const pageSize = parseInt(query.pageSize) || 10;
+            const offset = (page - 1) * pageSize;
+
+            // Build where clause
+            const whereClause = {};
+
+            // Add search functionality
+            if (query.searchKey) {
+                whereClause[Op.or] = [
+                    { '$User.businessName$': { [Op.like]: `%${query.searchKey}%` } },
+                    { '$User.fullName$': { [Op.like]: `%${query.searchKey}%` } },
+                    { '$User.email$': { [Op.like]: `%${query.searchKey}%` } },
+                    { paymentMethod: { [Op.like]: `%${query.searchKey}%` } }
+                ];
+            }
+
+            // Add status filter
+            if (query.status) {
+                whereClause.status = query.status;
+            }
+
+            // Add payment status filter
+            if (query.paymentStatus) {
+                whereClause.paymentStatus = query.paymentStatus;
+            }
+
+            // Add date range filter
+            if (query.startDate && query.endDate) {
+                whereClause.startDate = {
+                    [Op.between]: [
+                        new Date(new Date(query.startDate).setHours(0, 0, 0)),
+                        new Date(new Date(query.endDate).setHours(23, 59, 59))
+                    ]
+                };
+            }
+
+            // Get total count for pagination
+            const totalCount = await UserSubscription.count({
+                where: whereClause,
+                include: [{
+                    model: User,
+                    attributes: ['name', 'email', 'phone']
+                }]
+            });
+
+            const totalPages = Math.ceil(totalCount / pageSize);
+
+            // Get paginated subscriptions with related data
+            const subscriptions = await UserSubscription.findAll({
+                where: whereClause,
+                include: [
+                    {
+                        model: User,
+
+                    },
+                    {
+                        model: SubscriptionPlan,
+
+                    }
+                ],
+                order: [['createdAt', 'DESC']],
+                limit: pageSize,
+                offset: offset
+            });
+
+            return {
+                status: true,
+                message: "Subscriptions retrieved successfully",
+                data: {
+                    subscriptions,
+                    pagination: {
+                        page,
+                        pageSize,
+                        totalPages,
+                        totalItems: totalCount,
+                        hasNextPage: page < totalPages,
+                        hasPreviousPage: page > 1
+                    }
+                }
+            };
+
+        } catch (error) {
+            return {
+                status: false,
+                message: "Failed to retrieve subscriptions",
+                error: error.message
+            };
+        }
+    },
+
+    async updateSubscriptionPayment(subscriptionId, updateData) {
+        try {
+            const subscription = await UserSubscription.findByPk(subscriptionId, {
+                include: [
+                    {
+                        model: User,
+                    },
+                    {
+                        model: SubscriptionPlan,
+                    }
+                ]
+            });
+
+            if (!subscription) {
+                return {
+                    status: false,
+                    message: "Subscription not found",
+                    data: null
+                };
+            }
+
+            // Update payment status and other relevant fields
+            await subscription.update({
+                paymentStatus: updateData.paymentStatus,
+                paymentMethod: updateData.paymentMethod || subscription.paymentMethod,
+                status: updateData.paymentStatus === 'completed' ? 'active' : subscription.status
+            });
+
+            return {
+                status: true,
+                message: "Subscription payment updated successfully",
+                data: subscription
+            };
+
+        } catch (error) {
+            return {
+                status: false,
+                message: "Failed to update subscription payment",
                 error: error.message
             };
         }

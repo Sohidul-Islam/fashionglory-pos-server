@@ -71,6 +71,7 @@ StockHistory.belongsTo(User);
 
 // UserSubscription Associations
 UserSubscription.belongsTo(User);
+UserSubscription.belongsTo(SubscriptionPlan);
 
 // SubscriptionPlan Associations
 SubscriptionPlan.hasMany(UserSubscription);

@@ -122,6 +122,7 @@ const AuthService = {
             }
 
             const user = await User.findByPk(decoded.id);
+
             if (!user) {
                 return res.status(404).json({ status: false, message: "User not found", data: null });
             }
@@ -131,6 +132,7 @@ const AuthService = {
             }
 
             req.user = user;
+
             next();
         } catch (error) {
             return res.status(500).json({ status: false, message: "Authentication failed", data: null, error });
@@ -270,13 +272,6 @@ const AuthService = {
                 data: {
                     users: rows,
                     pagination: {
-                        // totalItems: count,
-                        // totalPages,
-                        // currentPage: page,
-                        // itemsPerPage: pageSize,
-                        // hasNextPage: page < totalPages,
-                        // hasPreviousPage: page > 1,
-
                         page,
                         pageSize,
                         totalPages,
@@ -290,6 +285,32 @@ const AuthService = {
         } catch (error) {
             console.log({ error })
             throw error;
+        }
+    },
+
+    isAdmin: async (req, res, next) => {
+        try {
+            // Check if user exists in request (should be added by authenticate middleware)
+            if (!req?.user?.id) {
+                return res.status(401).json({
+                    status: false,
+                    message: "Authentication required"
+                });
+            }
+
+
+            if (req?.user.accountType !== "super admin") {
+                return res.status(401).json({ status: false, message: "Admin access required", data: null });
+            }
+
+            // If user is admin, proceed to next middleware
+            next();
+        } catch (error) {
+            return res.status(500).json({
+                status: false,
+                message: "Error checking admin status",
+                error: error.message
+            });
         }
     }
 };
