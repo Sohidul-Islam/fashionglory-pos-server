@@ -1,7 +1,7 @@
 const cron = require('node-cron');
 const { UserSubscription, User, SubscriptionPlan } = require('../entity');
 const { Op } = require('sequelize');
-const EmailService = require('./emailService');
+const EmailService = require('./EmailService');
 
 const SchedulerService = {
     // Check and update expired subscriptions - runs every day at midnight
