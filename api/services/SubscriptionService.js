@@ -1,10 +1,12 @@
-const { SubscriptionPlan, UserSubscription, Coupon } = require('../entity');
+const { SubscriptionPlan, UserSubscription, Coupon, Product } = require('../entity');
 const { Op } = require('sequelize');
 const CouponService = require('./CouponService');
 const { User } = require('../entity');
 const path = require('path');
 const fs = require('fs');
 const { UserRole } = require('../entity');
+const subscriptionLimits = require('../middleware/subscriptionLimits');
+const { parseStorageSize } = require('../utils/helper');
 
 const SubscriptionService = {
     async createPlan(planData) {
@@ -521,6 +523,7 @@ const SubscriptionService = {
                 this.calculateStorageUsed(userId)
             ]);
 
+
             const maxStorage = parseStorageSize(subscription.SubscriptionPlan.maxStorage);
             const storageUsedMB = Math.round(storageUsed / (1024 * 1024) * 100) / 100; // Convert to MB
             const maxStorageMB = Math.round(maxStorage / (1024 * 1024) * 100) / 100; // Convert to MB
@@ -554,7 +557,7 @@ const SubscriptionService = {
                 storage: {
                     used: storageUsedMB,
                     limit: maxStorageMB,
-                    remaining: maxStorageMB - storageUsedMB,
+                    remaining: Number((maxStorageMB - storageUsedMB).toFixed(2)),
                     percentageUsed: (storageUsed / maxStorage) * 100,
                     unit: 'MB'
                 }
@@ -578,7 +581,7 @@ const SubscriptionService = {
     // Helper method to calculate storage used
     async calculateStorageUsed(userId) {
         try {
-            const uploadDir = path.join(__dirname, '../../public/uploads');
+            const uploadDir = path.join(__dirname, `../../public/uploads/${userId}`);
             let totalSize = 0;
 
             const files = await fs.promises.readdir(uploadDir);
@@ -593,6 +596,127 @@ const SubscriptionService = {
         } catch (error) {
             console.error('Error calculating storage:', error);
             return 0;
+        }
+    },
+
+    async getSubscriptionAnalytics(query = {}) {
+        try {
+            const startDate = query.startDate ? new Date(query.startDate) : new Date();
+            const endDate = query.endDate ? new Date(query.endDate) : new Date();
+
+            // Get all subscriptions within date range
+            const subscriptions = await UserSubscription.findAll({
+                where: {
+                    createdAt: {
+                        [Op.between]: [startDate, endDate]
+                    }
+                },
+                include: [{
+                    model: User,
+                    attributes: ['id', 'fullName', 'email', 'businessName']
+                }, {
+                    model: SubscriptionPlan,
+                    attributes: ['name', 'price']
+                }]
+            });
+
+            // Get pending subscriptions (payment status pending)
+            const pendingSubscriptions = await UserSubscription.findAll({
+                where: {
+                    paymentStatus: 'pending',
+                    status: 'active',
+                    createdAt: {
+                        [Op.between]: [startDate, endDate]
+                    }
+                },
+                include: [{
+                    model: User,
+                    attributes: ['id', 'fullName', 'email', 'businessName']
+                }, {
+                    model: SubscriptionPlan,
+                    attributes: ['name', 'price']
+                }]
+            });
+
+            // Get active subscriptions
+            const activeSubscriptions = await UserSubscription.findAll({
+                where: {
+                    status: 'active',
+                    paymentStatus: 'completed',
+                    endDate: {
+                        [Op.gt]: new Date()
+                    },
+                    createdAt: {
+                        [Op.between]: [startDate, endDate]
+                    }
+                },
+                include: [{
+                    model: User,
+                    attributes: ['id', 'fullName', 'email', 'businessName']
+                }, {
+                    model: SubscriptionPlan,
+                    attributes: ['name', 'price']
+                }]
+            });
+
+            // Calculate analytics
+            const analytics = {
+                dateRange: {
+                    startDate,
+                    endDate
+                },
+                summary: {
+                    totalSubscriptions: subscriptions.length,
+                    activeSubscriptions: activeSubscriptions.length,
+                    pendingSubscriptions: pendingSubscriptions.length,
+                    totalEarnings: subscriptions.reduce((sum, sub) =>
+                        sum + (sub.paymentStatus === 'completed' ? Number(sub.amount) : 0), 0),
+                    totalDiscount: subscriptions.reduce((sum, sub) =>
+                        sum + (sub.discount ? Number(sub.discount) : 0), 0)
+                },
+                pendingSubscriptions: pendingSubscriptions.map(sub => ({
+                    id: sub.id,
+                    user: sub.User,
+                    plan: sub.SubscriptionPlan.name,
+                    amount: sub.amount,
+                    createdAt: sub.createdAt
+                })),
+                activeSubscriptions: activeSubscriptions.map(sub => ({
+                    id: sub.id,
+                    user: sub.User,
+                    plan: sub.SubscriptionPlan.name,
+                    amount: sub.amount,
+                    startDate: sub.startDate,
+                    endDate: sub.endDate
+                })),
+                revenueByPlan: subscriptions.reduce((acc, sub) => {
+                    if (sub.paymentStatus === 'completed') {
+                        const planName = sub.SubscriptionPlan.name;
+                        acc[planName] = acc[planName] || {
+                            totalAmount: 0,
+                            subscriptions: 0,
+                            discount: 0
+                        };
+                        acc[planName].totalAmount += Number(sub.amount);
+                        acc[planName].subscriptions += 1;
+                        acc[planName].discount += Number(sub.discount || 0);
+                    }
+                    return acc;
+                }, {})
+            };
+
+            return {
+                status: true,
+                message: "Subscription analytics retrieved successfully",
+                data: analytics
+            };
+
+        } catch (error) {
+            return {
+                status: false,
+                message: "Failed to retrieve subscription analytics",
+                error: error.message
+            };
         }
     }
 };

@@ -32,14 +32,15 @@ class ImageUploadHelper {
                 width = 800,        // Default width
                 height = null,      // Maintain aspect ratio by default
                 quality = 80,       // Default quality
-                format = 'webp'     // Default format
+                format = 'webp',    // Default format
+                user
             } = options;
 
             // Create unique filename
-            const filename = `${uuidv4()}.${format}`;
+            const filename = `${user.id}_${uuidv4()}.${format}`;
 
             // Ensure upload directory exists
-            const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+            const uploadDir = path.join(process.cwd(), 'public', `uploads/${user?.id}`);
             await fs.mkdir(uploadDir, { recursive: true });
 
             // Process image with sharp
@@ -61,7 +62,7 @@ class ImageUploadHelper {
             await processedImage.toFile(filepath);
 
             // Return the public URL
-            return `/uploads/${filename}`;
+            return `/uploads/${user.id}/${filename}`;
         } catch (error) {
             console.error('Image processing error:', error);
             throw new Error('Failed to process image');

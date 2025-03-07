@@ -76,4 +76,14 @@ router.get('/limits',
     })
 );
 
+// Add this route to your subscription routes
+router.get('/analytics',
+    AuthService.authenticate,
+    AuthService.isAdmin,
+    requestHandler(null, async (req, res) => {
+        const result = await SubscriptionService.getSubscriptionAnalytics(req.query);
+        res.status(result.status ? 200 : 400).json(result);
+    })
+);
+
 module.exports = router; 

@@ -2,6 +2,7 @@ const { UserSubscription, SubscriptionPlan, User, Product, UserRole } = require(
 const { Op } = require('sequelize');
 const path = require('path');
 const fs = require('fs');
+const { parseStorageSize, calculateUserStorage } = require('../utils/helper');
 
 const subscriptionLimits = {
     async checkSubscriptionStatus(req, res, next) {
@@ -115,35 +116,6 @@ const subscriptionLimits = {
     }
 };
 
-// Helper functions
-function parseStorageSize(sizeString) {
-    const size = parseFloat(sizeString);
-    const unit = sizeString.replace(/[\d.]/g, '').trim().toUpperCase();
 
-    const units = {
-        'B': 1,
-        'KB': 1024,
-        'MB': 1024 * 1024,
-        'GB': 1024 * 1024 * 1024
-    };
-
-    return size * units[unit];
-}
-
-async function calculateUserStorage(userId) {
-    // Calculate total storage used from all uploaded files
-    const uploadDir = path.join(__dirname, '../../public/uploads');
-    let totalSize = 0;
-
-    const files = await fs.promises.readdir(uploadDir);
-    for (const file of files) {
-        if (file.startsWith(userId + '_')) {
-            const stats = await fs.promises.stat(path.join(uploadDir, file));
-            totalSize += stats.size;
-        }
-    }
-
-    return totalSize;
-}
 
 module.exports = subscriptionLimits; 

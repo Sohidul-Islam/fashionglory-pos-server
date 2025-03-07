@@ -22,6 +22,10 @@ const User = sequelize.define(
                 isEmail: true,
             },
         },
+        image: {
+            type: Sequelize.STRING,
+            allowNull: false,
+        },
         phoneNumber: {
             type: Sequelize.STRING(50),
             allowNull: false,

@@ -18,13 +18,15 @@ const imageController = {
                 ImageUploadHelper.processAndSaveImage(req.file, {
                     width: 800,
                     format: 'png',
-                    quality: 80
+                    quality: 80,
+                    user: req?.user
                 }),
                 // Thumbnail (width 200px)
                 ImageUploadHelper.processAndSaveImage(req.file, {
                     width: 200,
                     format: 'png',
-                    quality: 70
+                    quality: 70,
+                    user: req?.user
                 })
             ]);
 
@@ -56,12 +58,14 @@ const imageController = {
                     ImageUploadHelper.processAndSaveImage(file, {
                         width: 800,
                         format: 'png',
-                        quality: 80
+                        quality: 80,
+                        user: req?.user
                     }),
                     ImageUploadHelper.processAndSaveImage(file, {
                         width: 200,
                         format: 'png',
-                        quality: 70
+                        quality: 70,
+                        user: req?.user
                     })
                 ]);
 

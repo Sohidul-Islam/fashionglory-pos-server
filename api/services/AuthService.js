@@ -8,6 +8,19 @@ const AuthService = {
     async register(userData) {
         try {
             const hashedPassword = await bcrypt.hash(userData.password, 10);
+
+            if (userData.accountType === "super admin") {
+                const isExistSuperAdmin = await User.findOne({
+                    where: {
+                        accountType: "super admin"
+                    }
+                })
+
+                if (isExistSuperAdmin) {
+                    return { status: false, message: "Super admin already exist", data: null };
+                }
+            }
+
             const user = await User.create({
                 ...userData,
                 password: hashedPassword,
@@ -119,11 +132,47 @@ const AuthService = {
         }
     },
 
+    async getUserById(userId) {
+        try {
+            const user = await User.findOne(
+                {
+                    where: {
+                        id: userId
+                    }
+                }
+            );
+
+
+
+
+            if (!user) {
+                return { status: false, message: "User not found", data: null };
+            }
+
+            return { status: true, message: "Profile retrieved successfully", data: user };
+
+        } catch (error) {
+            return { status: false, message: "Failed to retrieve profile", data: null, error };
+        }
+    },
+
     async updateProfile(userId, updateData) {
         try {
             const user = await User.findByPk(userId);
             if (!user) {
                 return { status: false, message: "User not found", data: null, };
+            }
+
+            if (updateData.accountType === "super admin") {
+                const isExistSuperAdmin = await User.findOne({
+                    where: {
+                        accountType: "super admin"
+                    }
+                })
+
+                if (isExistSuperAdmin) {
+                    return { status: false, message: "Super admin already exist", data: null };
+                }
             }
 
             await user.update(updateData);

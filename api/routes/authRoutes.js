@@ -20,6 +20,11 @@ router.get('/profile', AuthService.authenticate, requestHandler(null, async (req
     res.status(200).json(result);
 }));
 
+router.get('/user/:id', AuthService.authenticate, requestHandler(null, async (req, res) => {
+    const result = await AuthService.getUserById(req.params.id);
+    res.status(200).json(result);
+}));
+
 router.post('/profile', AuthService.authenticate, requestHandler(null, async (req, res) => {
     const userId = req.query.userId; // Assuming user ID is available in req.user
     const result = await AuthService.updateProfile(userId, req.body);
