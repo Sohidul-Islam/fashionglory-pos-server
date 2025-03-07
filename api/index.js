@@ -21,9 +21,10 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const stateMentRoutes = require("./routes/statementRoutes")
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
 const couponRoutes = require('./routes/couponRoutes');
+const UserRoleRoutes = require("./routes/userRoutes")
+
 const port = process.env.SERVER_PORT || 3000
 const SchedulerService = require('./services/SchedulerService');
-
 app.use(cors())
 app.use(express.json());
 
@@ -47,6 +48,7 @@ app.use("/api/notifications", requestHandler(null, notificationRoutes));
 app.use("/api/statement", requestHandler(null, stateMentRoutes))
 app.use("/api/subscription", requestHandler(null, subscriptionRoutes));
 app.use("/api/coupons", requestHandler(null, couponRoutes));
+app.use("/api/user", requestHandler(null, UserRoleRoutes));
 
 app.get("/", function (req, res) {
     res.send("welcome pos solution family!");

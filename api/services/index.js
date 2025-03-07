@@ -12,6 +12,8 @@ const NotificationService = require("./NotificationService");
 const StatementService = require("./statementService");
 const SubscriptionService = require("./SubscriptionService");
 const CouponService = require("./CouponService");
+const UserRoleService = require("./UserRoleService");
+
 
 
 module.exports = {
@@ -28,5 +30,7 @@ module.exports = {
     NotificationService,
     StatementService,
     SubscriptionService,
-    CouponService
+    CouponService,
+    UserRoleService
+
 };

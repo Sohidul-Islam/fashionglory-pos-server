@@ -2,6 +2,8 @@ const { SubscriptionPlan, UserSubscription, Coupon } = require('../entity');
 const { Op } = require('sequelize');
 const CouponService = require('./CouponService');
 const { User } = require('../entity');
+const path = require('path');
+const fs = require('fs');
 
 const SubscriptionService = {
     async createPlan(planData) {
@@ -467,6 +469,116 @@ const SubscriptionService = {
                 message: "Failed to check subscriptions",
                 error: error.message
             };
+        }
+    },
+
+    async checkSubscriptionLimits(userId) {
+        try {
+            // Get active subscription with plan details
+            const subscription = await UserSubscription.findOne({
+                where: {
+                    UserId: userId,
+                    status: 'active',
+                    endDate: {
+                        [Op.gt]: new Date()
+                    },
+                    paymentStatus: 'completed'
+                },
+                include: [{
+                    model: SubscriptionPlan,
+                    attributes: ['maxProducts', 'maxStorage', 'maxUsers', 'name']
+                }]
+            });
+
+            if (!subscription) {
+                return {
+                    status: false,
+                    message: "No active subscription found",
+                    data: null
+                };
+            }
+
+            // Get current usage statistics
+            const [productCount, childUserCount, storageUsed] = await Promise.all([
+                // Count products
+                Product.count({
+                    where: { UserId: userId }
+                }),
+                // Count child users
+                UserRole.count({
+                    where: {
+                        parentUserId: userId,
+                        status: 'active'
+                    }
+                }),
+                // Calculate storage used
+                this.calculateStorageUsed(userId)
+            ]);
+
+            const maxStorage = parseStorageSize(subscription.SubscriptionPlan.maxStorage);
+            const storageUsedMB = Math.round(storageUsed / (1024 * 1024) * 100) / 100; // Convert to MB
+            const maxStorageMB = Math.round(maxStorage / (1024 * 1024) * 100) / 100; // Convert to MB
+
+            const limits = {
+                subscription: {
+                    plan: subscription.SubscriptionPlan.name,
+                    status: subscription.status,
+                    expiryDate: subscription.endDate
+                },
+                products: {
+                    used: productCount,
+                    limit: subscription.SubscriptionPlan.maxProducts,
+                    remaining: subscription.SubscriptionPlan.maxProducts - productCount,
+                    percentageUsed: (productCount / subscription.SubscriptionPlan.maxProducts) * 100
+                },
+                users: {
+                    used: childUserCount,
+                    limit: subscription.SubscriptionPlan.maxUsers,
+                    remaining: subscription.SubscriptionPlan.maxUsers - childUserCount,
+                    percentageUsed: (childUserCount / subscription.SubscriptionPlan.maxUsers) * 100
+                },
+                storage: {
+                    used: storageUsedMB,
+                    limit: maxStorageMB,
+                    remaining: maxStorageMB - storageUsedMB,
+                    percentageUsed: (storageUsed / maxStorage) * 100,
+                    unit: 'MB'
+                }
+            };
+
+            return {
+                status: true,
+                message: "Subscription limits retrieved successfully",
+                data: limits
+            };
+
+        } catch (error) {
+            return {
+                status: false,
+                message: "Failed to check subscription limits",
+                error: error.message
+            };
+        }
+    },
+
+    // Helper method to calculate storage used
+    async calculateStorageUsed(userId) {
+        try {
+            const uploadDir = path.join(__dirname, '../../public/uploads');
+            let totalSize = 0;
+
+            const files = await fs.promises.readdir(uploadDir);
+            for (const file of files) {
+                if (file.startsWith(userId + '_')) {
+                    const stats = await fs.promises.stat(path.join(uploadDir, file));
+                    totalSize += stats.size;
+                }
+            }
+
+            return totalSize;
+        } catch (error) {
+            console.error('Error calculating storage:', error);
+            return 0;
         }
     }
 };

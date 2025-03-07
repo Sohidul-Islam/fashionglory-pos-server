@@ -12,6 +12,7 @@ const StockHistory = require('./StockHistory');
 const SubscriptionPlan = require('./SubscriptionPlan');
 const UserSubscription = require('./UserSubscription');
 const Coupon = require('./Coupon');
+const UserRole = require('./UserRole');
 
 // User Associations
 User.hasMany(Product);
@@ -21,6 +22,8 @@ User.hasMany(Unit);
 User.hasMany(Color);
 User.hasMany(Size);
 User.hasMany(UserSubscription);
+User.hasMany(UserRole, { as: 'childUsers', foreignKey: 'parentUserId' });
+User.hasOne(UserRole, { as: 'roleInfo', foreignKey: 'userId' });
 
 // Product Associations
 Product.belongsTo(User);
@@ -76,6 +79,10 @@ UserSubscription.belongsTo(SubscriptionPlan);
 // SubscriptionPlan Associations
 SubscriptionPlan.hasMany(UserSubscription);
 
+// UserRole Associations
+UserRole.belongsTo(User, { as: 'parent', foreignKey: 'parentUserId' });
+
+
 module.exports = {
     User,
     Product,
@@ -90,5 +97,6 @@ module.exports = {
     StockHistory,
     SubscriptionPlan,
     UserSubscription,
-    Coupon
+    Coupon,
+    UserRole
 };

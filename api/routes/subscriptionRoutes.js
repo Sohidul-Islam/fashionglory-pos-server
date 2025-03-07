@@ -67,4 +67,13 @@ router.post('/check-all', AuthService.authenticate, AuthService.isAdmin, request
     res.status(result.status ? 200 : 400).json(result);
 }));
 
+// Add this route to your existing subscription routes
+router.get('/limits',
+    AuthService.authenticate,
+    requestHandler(null, async (req, res) => {
+        const result = await SubscriptionService.checkSubscriptionLimits(req.user.id);
+        res.status(result.status ? 200 : 400).json(result);
+    })
+);
+
 module.exports = router; 
