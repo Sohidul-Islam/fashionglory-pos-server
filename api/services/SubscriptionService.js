@@ -4,6 +4,7 @@ const CouponService = require('./CouponService');
 const { User } = require('../entity');
 const path = require('path');
 const fs = require('fs');
+const { UserRole } = require('../entity');
 
 const SubscriptionService = {
     async createPlan(planData) {
@@ -474,6 +475,18 @@ const SubscriptionService = {
 
     async checkSubscriptionLimits(userId) {
         try {
+
+
+            const userData = await User.findByPk(userId);
+
+            if (!userData) {
+                return {
+                    status: false,
+                    message: "User not found",
+                    data: null
+                };
+            }
+
             // Get active subscription with plan details
             const subscription = await UserSubscription.findOne({
                 where: {
@@ -490,7 +503,7 @@ const SubscriptionService = {
                 }]
             });
 
-            if (!subscription) {
+            if (!subscription && userData?.accountType !== "super admin") {
                 return {
                     status: false,
                     message: "No active subscription found",
@@ -499,17 +512,10 @@ const SubscriptionService = {
             }
 
             // Get current usage statistics
-            const [productCount, childUserCount, storageUsed] = await Promise.all([
+            const [productCount, storageUsed] = await Promise.all([
                 // Count products
                 Product.count({
                     where: { UserId: userId }
-                }),
-                // Count child users
-                UserRole.count({
-                    where: {
-                        parentUserId: userId,
-                        status: 'active'
-                    }
                 }),
                 // Calculate storage used
                 this.calculateStorageUsed(userId)
@@ -518,6 +524,14 @@ const SubscriptionService = {
             const maxStorage = parseStorageSize(subscription.SubscriptionPlan.maxStorage);
             const storageUsedMB = Math.round(storageUsed / (1024 * 1024) * 100) / 100; // Convert to MB
             const maxStorageMB = Math.round(maxStorage / (1024 * 1024) * 100) / 100; // Convert to MB
+
+            // Update child users count
+            const childUserCount = await UserRole.count({
+                where: {
+                    parentUserId: userId,
+                    status: 'active'
+                }
+            });
 
             const limits = {
                 subscription: {

@@ -18,10 +18,10 @@ router.post('/child-user',
 );
 
 // Update child user role/permissions
-router.put('/child-user/:userId',
+router.post('/child-user/:id',
     AuthService.authenticate,
     requestHandler(null, async (req, res) => {
-        const result = await UserRoleService.updateUserRole(req.params.userId, req.body);
+        const result = await UserRoleService.updateUserRole(req.params.id, req.body, req.user.id);
         res.status(result.status ? 200 : 400).json(result);
     })
 );
@@ -30,7 +30,17 @@ router.put('/child-user/:userId',
 router.get('/child-users',
     AuthService.authenticate,
     requestHandler(null, async (req, res) => {
-        const result = await UserRoleService.getChildUsers(req.user.id, req.query);
+
+        const result = await UserRoleService.getChildUsers(req.user.id, req?.query);
+        res.status(result.status ? 200 : 400).json(result);
+    })
+);
+
+// Delete child user
+router.post('/child-users/delete/:id',
+    AuthService.authenticate,
+    requestHandler(null, async (req, res) => {
+        const result = await UserRoleService.deleteChildUser(req.params.id, req.user.id);
         res.status(result.status ? 200 : 400).json(result);
     })
 );

@@ -20,7 +20,7 @@ const subscriptionLimits = {
                 }]
             });
 
-            if (!activeSubscription) {
+            if (req?.user?.accountType !== "super admin" && !activeSubscription) {
                 return res.status(403).json({
                     status: false,
                     message: "No active subscription found. Please subscribe to continue."
@@ -98,7 +98,7 @@ const subscriptionLimits = {
                 }
             });
 
-            if (userCount >= req.subscription.SubscriptionPlan.maxUsers) {
+            if (req.user.accountType !== "super admin" && userCount >= req.subscription.SubscriptionPlan.maxUsers) {
                 return res.status(403).json({
                     status: false,
                     message: "User limit reached for your subscription plan"

@@ -1,6 +1,6 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { User, UserSubscription, SubscriptionPlan } = require('../entity');
+const { User, UserSubscription, SubscriptionPlan, UserRole } = require('../entity');
 const EmailService = require('./EmailService');
 const { Op } = require('sequelize');
 
@@ -58,22 +58,36 @@ const AuthService = {
     async login(email, password) {
         try {
             const user = await User.findOne({ where: { email } });
-            if (!user) {
+
+            const childUser = await UserRole.findOne({
+                where: { email }, include: [
+
+                    {
+                        model: User,
+                        as: "parent"
+                    }
+                ]
+            })
+
+            if (!user && !childUser) {
                 throw new Error('User not found');
             }
 
-            if (!user.isVerified) {
+
+
+            if (user && !user.isVerified) {
                 throw new Error('Please verify your email before logging in');
             }
 
-            const isPasswordValid = await bcrypt.compare(password, user.password);
+
+            const isPasswordValid = await bcrypt.compare(password, user ? user.password : childUser.password);
 
             if (!isPasswordValid) {
                 return { status: false, message: "Invalid Password", data: null };
             }
 
-            const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '15d' });
-            return { status: true, message: "Login successful", data: { user, token } };
+            const token = jwt.sign({ id: user ? user?.id : childUser?.parentUserId, childId: childUser?.id }, process.env.JWT_SECRET, { expiresIn: '15d' });
+            return { status: true, message: "Login successful", data: { user: user ? user : { ...childUser.parent?.dataValues, child: childUser }, token } };
         } catch (error) {
             throw error;
         }
@@ -82,11 +96,24 @@ const AuthService = {
     async getProfile(email) {
         try {
             const user = await User.findOne({ where: { email } });
-            if (!user) {
+
+            const childUser = await UserRole.findOne({
+                where: { email }, include: [
+
+                    {
+                        model: User,
+                        as: "parent"
+                    }
+                ]
+            })
+
+
+            if (!user && !childUser) {
                 return { status: false, message: "User not found", data: null };
             }
 
-            return { status: true, message: "Profile retrieved successfully", data: user };
+            return { status: true, message: "Profile retrieved successfully", data: user ? user : { ...childUser.parent?.dataValues, child: childUser } };
+
         } catch (error) {
             return { status: false, message: "Failed to retrieve profile", data: null, error };
         }

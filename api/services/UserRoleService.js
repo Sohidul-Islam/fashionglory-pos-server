@@ -1,11 +1,24 @@
 const sequelize = require('../db');
-const { User, UserRole, UserSubscription, SubscriptionPlan } = require('../entity');
+const { UserRole, UserSubscription, SubscriptionPlan, User } = require('../entity');
 const { Op } = require('sequelize');
+const bcrypt = require('bcrypt');
 
 const UserRoleService = {
     async addChildUser(parentId, userData) {
         const transaction = await sequelize.transaction();
         try {
+
+            const userInfo = await User.findByPk(parentId);
+
+            if (!userInfo) {
+                return {
+                    status: false,
+                    message: "User not found",
+                    data: null
+                };
+            }
+
+
             // Check subscription limits
             const subscription = await UserSubscription.findOne({
                 where: {
@@ -20,7 +33,7 @@ const UserRoleService = {
                 }]
             });
 
-            if (!subscription) {
+            if (!subscription && userInfo?.accountType !== "super admin") {
                 throw new Error("No active subscription found");
             }
 
@@ -32,42 +45,63 @@ const UserRoleService = {
                 }
             });
 
-            if (currentUserCount >= subscription.SubscriptionPlan.maxUsers) {
+            if (userInfo?.accountType !== "super admin" && currentUserCount >= subscription.SubscriptionPlan.maxUsers) {
                 throw new Error("User limit reached for your subscription plan");
             }
 
+            // Check if email already exists
+            const existingUser = await UserRole.findOne({
+                where: { email: userData.email }
+            });
+
+            const existingParent = await User.findOne({
+                where: { email: userData.email }
+            });
+
+            if (existingUser || existingParent) {
+                throw new Error("Email already exists");
+            }
+
+            // Hash password
+            const hashedPassword = await bcrypt.hash(userData.password, 10);
 
             // Create user role
             const userRole = await UserRole.create({
                 ...userData,
+                password: hashedPassword,
                 parentUserId: parentId,
                 permissions: userData.permissions || getDefaultPermissions(userData.role)
             }, { transaction });
 
             await transaction.commit();
 
+            // Remove password from response
+            const userRoleResponse = userRole.toJSON();
+            delete userRoleResponse.password;
+
             return {
                 status: true,
                 message: "Child user created successfully",
-                data: {
-                    role: userRole
-                }
+                data: userRoleResponse
             };
 
         } catch (error) {
             await transaction.rollback();
             return {
                 status: false,
-                message: "Failed to create child user",
+                message: error.message || "Failed to create child user",
                 error: error.message
             };
         }
     },
 
-    async updateUserRole(userId, updateData) {
+    async updateUserRole(id, updateData, parentId) {
         try {
             const userRole = await UserRole.findOne({
-                where: { userId }
+                where: {
+                    id,
+                    parentUserId: parentId
+                }
             });
 
             if (!userRole) {
@@ -78,19 +112,43 @@ const UserRoleService = {
                 };
             }
 
-            await userRole.update({
-                role: updateData.role || userRole.role,
-                permissions: {
-                    ...userRole.permissions,
-                    ...updateData.permissions
-                },
-                status: updateData.status || userRole.status
-            });
+            // If updating password, hash it
+            if (updateData.password) {
+                updateData.password = await bcrypt.hash(updateData.password, 10);
+            }
+            else {
+                updateData.password = undefined
+            }
+
+            // If updating email, check if it exists
+            if (updateData.email && updateData.email !== userRole.email) {
+                const existingUser = await UserRole.findOne({
+                    where: { email: updateData.email }
+                });
+
+                const existingParent = await User.findOne({
+                    where: { email: userData.email }
+                });
+
+                if (existingUser || existingParent) {
+                    return {
+                        status: false,
+                        message: "Email already exists",
+                        data: null
+                    };
+                }
+            }
+
+            await userRole.update(updateData);
+
+            // Remove password from response
+            const userRoleResponse = userRole.toJSON();
+            delete userRoleResponse.password;
 
             return {
                 status: true,
                 message: "User role updated successfully",
-                data: userRole
+                data: userRoleResponse
             };
         } catch (error) {
             return {
@@ -103,31 +161,95 @@ const UserRoleService = {
 
     async getChildUsers(parentId, query = {}) {
         try {
+            const page = parseInt(query.page) || 1;
+            const pageSize = parseInt(query.pageSize) || 10;
+            const offset = (page - 1) * pageSize;
+
+            // Build where clause
             const whereClause = {
                 parentUserId: parentId
             };
 
+            // Add role and status filters
             if (query.role) whereClause.role = query.role;
             if (query.status) whereClause.status = query.status;
 
+            // Add search conditions
+            if (query.searchKey) {
+                whereClause[Op.or] = [
+                    { fullName: { [Op.like]: `%${query.searchKey}%` } },
+                    { email: { [Op.like]: `%${query.searchKey}%` } },
+                    { phone: { [Op.like]: `%${query.searchKey}%` } }
+                ];
+            }
+
+            // Get total count for pagination
+            const totalCount = await UserRole.count({ where: whereClause });
+
+            // Get paginated results
             const childUsers = await UserRole.findAll({
                 where: whereClause,
+                attributes: { exclude: ['password'] },
                 include: [{
                     model: User,
-                    as: 'user',
-                    attributes: ['id', 'email', 'fullName', 'phone', 'status']
-                }]
+                    as: "parent"
+                }],
+                order: [['createdAt', 'DESC']],
+                limit: pageSize,
+                offset: offset
             });
 
             return {
                 status: true,
                 message: "Child users retrieved successfully",
-                data: childUsers
+                data: {
+                    users: childUsers,
+                    pagination: {
+                        page,
+                        pageSize,
+                        totalCount,
+                        totalPages: Math.ceil(totalCount / pageSize),
+                        hasMore: page < Math.ceil(totalCount / pageSize)
+                    }
+                }
             };
         } catch (error) {
             return {
                 status: false,
                 message: "Failed to retrieve child users",
+                error: error.message
+            };
+        }
+    },
+
+    async deleteChildUser(id, parentId) {
+        try {
+            const userRole = await UserRole.findOne({
+                where: {
+                    id,
+                    parentUserId: parentId
+                }
+            });
+
+            if (!userRole) {
+                return {
+                    status: false,
+                    message: "User role not found",
+                    data: null
+                };
+            }
+
+            await userRole.destroy();
+
+            return {
+                status: true,
+                message: "Child user deleted successfully",
+                data: null
+            };
+        } catch (error) {
+            return {
+                status: false,
+                message: "Failed to delete child user",
                 error: error.message
             };
         }
