@@ -20,7 +20,7 @@ router.get('/profile', AuthService.authenticate, requestHandler(null, async (req
     res.status(200).json(result);
 }));
 
-router.get('/user/:id', AuthService.authenticate, requestHandler(null, async (req, res) => {
+router.get('/single-user/:id', AuthService.authenticate, requestHandler(null, async (req, res) => {
     const result = await AuthService.getUserById(req.params.id);
     res.status(200).json(result);
 }));

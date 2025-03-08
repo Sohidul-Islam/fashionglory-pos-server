@@ -30,7 +30,6 @@ router.post('/child-user/:id',
 router.get('/child-users',
     AuthService.authenticate,
     requestHandler(null, async (req, res) => {
-
         const result = await UserRoleService.getChildUsers(req.user.id, req?.query);
         res.status(result.status ? 200 : 400).json(result);
     })

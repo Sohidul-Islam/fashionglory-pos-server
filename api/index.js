@@ -48,7 +48,7 @@ app.use("/api/notifications", requestHandler(null, notificationRoutes));
 app.use("/api/statement", requestHandler(null, stateMentRoutes))
 app.use("/api/subscription", requestHandler(null, subscriptionRoutes));
 app.use("/api/coupons", requestHandler(null, couponRoutes));
-app.use("/api/user", requestHandler(null, UserRoleRoutes));
+app.use("/api/user", UserRoleRoutes);
 
 app.get("/", function (req, res) {
     res.send("welcome pos solution family!");
