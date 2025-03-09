@@ -24,7 +24,7 @@ class EmailService {
         const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${token}&email=${user.email}`;
         // Email content
         const mailOptions = {
-            from: process.env.EMAIL_USER,
+            from: process.env.ADMIN_EMAIL,
             to: user.email,
             subject: 'Verify Your Email Address',
             html: `
@@ -41,9 +41,8 @@ class EmailService {
 
     async sendResetPasswordEmail(email, token) {
         const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
-
         const mailOptions = {
-            from: process.env.EMAIL_USER,
+            from: process.env.ADMIN_EMAIL,
             to: email,
             subject: 'Password Reset Request',
             html: `
@@ -59,7 +58,7 @@ class EmailService {
             await this.transporter.sendMail(mailOptions);
             return true;
         } catch (error) {
-            console.error('Email sending failed:', error);
+            console.log('Email sending failed:', error);
             throw new Error('Failed to send reset password email');
         }
     }
@@ -68,7 +67,7 @@ class EmailService {
         const { email, userName, businessName, planName, expiryDate, daysRemaining } = data;
 
         const mailOptions = {
-            from: process.env.EMAIL_USER,
+            from: process.env.ADMIN_EMAIL,
             to: email,
             subject: `Subscription Renewal Reminder - ${daysRemaining} days remaining`,
             html: `
