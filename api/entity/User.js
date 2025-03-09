@@ -24,7 +24,7 @@ const User = sequelize.define(
         },
         image: {
             type: Sequelize.STRING,
-            allowNull: false,
+            allowNull: true,
         },
         phoneNumber: {
             type: Sequelize.STRING(50),
