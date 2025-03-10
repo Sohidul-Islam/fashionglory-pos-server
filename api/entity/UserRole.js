@@ -14,7 +14,7 @@ const UserRole = sequelize.define("UserRole", {
     email: {
         type: Sequelize.STRING,
         allowNull: false,
-        unique: true,
+        unique: "user-role-email",
         validate: {
             isEmail: true,
         },
