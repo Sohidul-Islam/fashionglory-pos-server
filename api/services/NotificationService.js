@@ -1,5 +1,6 @@
 const { Product, ProductVariant, Color, Size } = require('../entity');
 const { Op, Sequelize } = require('sequelize');
+const sequelize = require('sequelize');
 
 const NotificationService = {
     async getStockAlerts(userId) {
@@ -22,15 +23,22 @@ const NotificationService = {
                     attributes: ['id'],
                     required: false
                 }],
-                having: Sequelize.literal('COUNT(ProductVariants.id) = 0'),
-                group: ['Product.id'],
                 attributes: [
                     'id',
                     'name',
                     'sku',
                     'stock',
-                    'alertQuantity'
-                ]
+                    'alertQuantity',
+                    [sequelize.fn('COUNT', sequelize.col('ProductVariants.id')), 'variantCount']
+                ],
+                group: [
+                    'Product.id',
+                    'Product.name',
+                    'Product.sku',
+                    'Product.stock',
+                    'Product.alertQuantity'
+                ],
+                having: sequelize.literal('variantCount = 0')
             });
 
             // Get products with variants that have low or out of stock
@@ -38,6 +46,10 @@ const NotificationService = {
                 where: {
                     UserId: userId
                 },
+                attributes: [
+                    'id',
+                    'name'
+                ],
                 include: [{
                     model: ProductVariant,
                     where: {
@@ -53,11 +65,13 @@ const NotificationService = {
                     include: [
                         {
                             model: Color,
-                            attributes: ['name']
+                            attributes: ['name'],
+                            required: false
                         },
                         {
                             model: Size,
-                            attributes: ['name']
+                            attributes: ['name'],
+                            required: false
                         }
                     ],
                     attributes: [
@@ -67,7 +81,18 @@ const NotificationService = {
                         'alertQuantity'
                     ]
                 }],
-                attributes: ['id', 'name']
+                group: [
+                    'Product.id',
+                    'Product.name',
+                    'ProductVariants.id',
+                    'ProductVariants.sku',
+                    'ProductVariants.quantity',
+                    'ProductVariants.alertQuantity',
+                    'ProductVariants->Color.id',
+                    'ProductVariants->Color.name',
+                    'ProductVariants->Size.id',
+                    'ProductVariants->Size.name'
+                ]
             });
 
             // Format notifications
@@ -80,7 +105,7 @@ const NotificationService = {
                     sku: product.sku,
                     currentStock: product.stock,
                     alertQuantity: product.alertQuantity,
-                    status: product.stock === 0 ? 'out_of_stock' : product.stock <= product?.alertQuantity ? 'low_stock' : 'available',
+                    status: product.stock === 0 ? 'out_of_stock' : product.stock <= product.alertQuantity ? 'low_stock' : 'available',
                     message: product.stock === 0
                         ? `${product.name} is out of stock!`
                         : `${product.name} is running low on stock (${product.stock} remaining)`
@@ -92,14 +117,14 @@ const NotificationService = {
                         type: 'variant',
                         productId: product.id,
                         variantId: variant.id,
-                        name: `${product.name} (${variant.Color.name} - ${variant.Size.name})`,
+                        name: `${product.name} (${variant.Color?.name || ''} - ${variant.Size?.name || ''})`,
                         sku: variant.sku,
                         currentStock: variant.quantity,
                         alertQuantity: variant.alertQuantity,
-                        status: variant.quantity === 0 ? 'out_of_stock' : variant.quantity <= variant.alertQuantity ? 'low_stock' : "available",
+                        status: variant.quantity === 0 ? 'out_of_stock' : variant.quantity <= variant.alertQuantity ? 'low_stock' : 'available',
                         message: variant.quantity === 0
-                            ? `${product.name} (${variant.Color.name} - ${variant.Size.name}) is out of stock!`
-                            : `${product.name} (${variant.Color.name} - ${variant.Size.name}) is running low on stock (${variant.quantity} remaining)`
+                            ? `${product.name} (${variant.Color?.name || ''} - ${variant.Size?.name || ''}) is out of stock!`
+                            : `${product.name} (${variant.Color?.name || ''} - ${variant.Size?.name || ''}) is running low on stock (${variant.quantity} remaining)`
                     }))
                 )
             ].filter((item) => item?.status !== "available");
