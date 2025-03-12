@@ -20,7 +20,7 @@ const NotificationService = {
                 },
                 include: [{
                     model: ProductVariant,
-                    attributes: ['id'],
+                    attributes: [],  // We only need this for counting
                     required: false
                 }],
                 attributes: [
@@ -29,16 +29,12 @@ const NotificationService = {
                     'sku',
                     'stock',
                     'alertQuantity',
-                    [sequelize.fn('COUNT', sequelize.col('ProductVariants.id')), 'variantCount']
+                    [Sequelize.fn('COUNT', Sequelize.col('ProductVariants.id')), 'variantCount']
                 ],
                 group: [
-                    'Product.id',
-                    'Product.name',
-                    'Product.sku',
-                    'Product.stock',
-                    'Product.alertQuantity'
+                    'Product.id'
                 ],
-                having: sequelize.literal('variantCount = 0')
+                having: Sequelize.literal('COUNT(ProductVariants.id) = 0')
             });
 
             // Get products with variants that have low or out of stock
@@ -46,16 +42,14 @@ const NotificationService = {
                 where: {
                     UserId: userId
                 },
-                attributes: [
-                    'id',
-                    'name'
-                ],
+                attributes: ['id', 'name'],
                 include: [{
                     model: ProductVariant,
+                    separate: true, // This will perform a separate query for variants
                     where: {
                         [Op.or]: [
                             {
-                                quantity: { [Op.lte]: Sequelize.col('Product.alertQuantity') }
+                                quantity: { [Op.lte]: Sequelize.col('ProductVariant.alertQuantity') }
                             },
                             {
                                 quantity: 0
@@ -80,19 +74,7 @@ const NotificationService = {
                         'quantity',
                         'alertQuantity'
                     ]
-                }],
-                group: [
-                    'Product.id',
-                    'Product.name',
-                    'ProductVariants.id',
-                    'ProductVariants.sku',
-                    'ProductVariants.quantity',
-                    'ProductVariants.alertQuantity',
-                    'ProductVariants->Color.id',
-                    'ProductVariants->Color.name',
-                    'ProductVariants->Size.id',
-                    'ProductVariants->Size.name'
-                ]
+                }]
             });
 
             // Format notifications
@@ -113,7 +95,7 @@ const NotificationService = {
 
                 // Variant notifications
                 ...productsWithVariants.flatMap(product =>
-                    product.ProductVariants.map(variant => ({
+                    (product.ProductVariants || []).map(variant => ({
                         type: 'variant',
                         productId: product.id,
                         variantId: variant.id,
