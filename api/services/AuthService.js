@@ -338,8 +338,13 @@ const AuthService = {
                 include: [
                     {
                         model: UserSubscription,
+                        required: false, // LEFT JOIN to include users without subscriptions
                         where: {
-                            status: "active",
+                            status: 'active',
+                            endDate: {
+                                [Op.gt]: new Date()
+                            },
+                            paymentStatus: 'completed'
                         },
 
                         include: [
