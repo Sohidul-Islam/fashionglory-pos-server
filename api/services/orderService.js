@@ -398,15 +398,15 @@ const OrderService = {
                         {
                             model: Product,
                             include: [
-                                { model: Color},
+                                { model: Color },
                                 { model: Size }
                             ]
                         },
                         {
                             model: ProductVariant,
                             include: [
-                                { model: Product},
-                                { model: Color},
+                                { model: Product },
+                                { model: Color },
                                 { model: Size }
                             ]
                         }
@@ -435,14 +435,14 @@ const OrderService = {
                     let productName, sku, details;
 
                     if (item.ProductVariant) {
-                        productName = item.ProductVariant?.Product?.name||"";
+                        productName = item.ProductVariant?.Product?.name || "";
                         sku = item?.ProductVariant?.sku;
                         details = `${item?.ProductVariant?.Color?.name} - ${item?.ProductVariant?.Size?.name}`;
                     }
                     else if (item.Product) {
                         productName = item?.Product?.name;
                         sku = item?.Product?.sku;
-                        details = `${item?.Product?.Color?.name||""} - ${item?.Product?.Size?.name||""}`;
+                        details = `${item?.Product?.Color?.name || ""} - ${item?.Product?.Size?.name || ""}`;
                     }
 
                     return {
@@ -469,9 +469,9 @@ const OrderService = {
                 },
                 orderStatus: order.orderStatus,
                 businessInfo: {
-                    name: userData?.businessName ||"FG-POS", // You might want to make this configurable
+                    name: userData?.businessName || "FG-POS", // You might want to make this configurable
                     address: userData?.location || "162/26 NaNai Road, PaTong, Kathu, Phuket- 83150, Thailand.",
-                    phone: userData?.phoneNumber||"+66910414319",
+                    phone: userData?.phoneNumber || "+66910414319",
                     email: userData?.email || "support@fashiongloryltd.com",
                     website: userData?.email || "https://fashion-glory-pos-system.vercel.app",
                     taxId: "123456"
@@ -518,6 +518,7 @@ const OrderService = {
                     {
                         model: Order,
                         where: whereClause,
+                        attributes: [] // Only include for filtering, not in result
                     },
                     {
                         model: Product,
@@ -527,18 +528,41 @@ const OrderService = {
                         model: ProductVariant,
                         attributes: ['sku'],
                         include: [
-                            { model: Color, attributes: ['name'] },
-                            { model: Size, attributes: ['name'] }
-                        ]
+                            {
+                                model: Color,
+                                attributes: ['name'],
+                                required: false
+                            },
+                            {
+                                model: Size,
+                                attributes: ['name'],
+                                required: false
+                            }
+                        ],
+                        required: false
                     }
                 ],
                 attributes: [
                     'ProductId',
                     'ProductVariantId',
                     [sequelize.fn('SUM', sequelize.col('OrderItem.quantity')), 'totalQuantity'],
-                    [sequelize.fn('SUM', sequelize.col('OrderItem.subtotal')), 'totalRevenue']
+                    [sequelize.fn('SUM', sequelize.col('OrderItem.subtotal')), 'totalRevenue'],
+                    [sequelize.fn('COUNT', sequelize.col('OrderItem.id')), 'orderCount']
                 ],
-                group: ['ProductId', 'ProductVariantId', 'Product.id', 'ProductVariant.id', 'ProductVariant->Color.id', 'ProductVariant->Size.id'],
+                group: [
+                    'OrderItem.ProductId',
+                    'OrderItem.ProductVariantId',
+                    'Product.id',
+                    'ProductVariant.id',
+                    'ProductVariant.sku',
+                    'Product.name',
+                    'Product.sku',
+                    'Product.purchasePrice',
+                    'ProductVariant->Color.id',
+                    'ProductVariant->Color.name',
+                    'ProductVariant->Size.id',
+                    'ProductVariant->Size.name'
+                ],
                 order: [[sequelize.fn('SUM', sequelize.col('OrderItem.quantity')), 'DESC']],
                 limit: query.limit || 10
             });
@@ -551,12 +575,13 @@ const OrderService = {
 
                 return {
                     name: item.Product.name + (item.ProductVariant ?
-                        ` (${item.ProductVariant.Color.name} - ${item.ProductVariant.Size.name})` : ''),
+                        ` (${item.ProductVariant.Color?.name || ''} - ${item.ProductVariant.Size?.name || ''})` : ''),
                     sku: item.ProductVariant ? item.ProductVariant.sku : item.Product.sku,
                     totalQuantity,
                     totalRevenue,
                     profit,
-                    averagePrice: (totalRevenue / totalQuantity).toFixed(2)
+                    averagePrice: (totalRevenue / totalQuantity).toFixed(2),
+                    orderCount: parseInt(item.dataValues.orderCount)
                 };
             });
 
@@ -566,7 +591,7 @@ const OrderService = {
                 data: formattedItems
             };
         } catch (error) {
-            console.log({ error })
+            console.log({ error });
             return {
                 status: false,
                 message: "Failed to retrieve top selling items",
