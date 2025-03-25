@@ -89,8 +89,10 @@ const AuthService = {
 
 
             if (user && !user.isVerified) {
+
+                await EmailService.sendVerificationEmail(user)
                 // throw new Error('Please verify your email before logging in');
-                return { status: false, message: "Please verify your email before logging in", data: null };
+                return { status: false, message: "Please verify your email before logging in. We have sent you a new verification email.", data: null };
             }
 
 
