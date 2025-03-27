@@ -12,7 +12,6 @@ const Size = sequelize.define(
         name: {
             type: Sequelize.STRING,
             allowNull: false,
-            unique: "size_name",
             comment: "Size name",
             defaultValue: "",
         },

@@ -12,13 +12,11 @@ const Unit = sequelize.define(
         name: {
             type: Sequelize.STRING,
             allowNull: false,
-            unique: "unit_name",
             comment: "Unit name (e.g., kg, piece, dozen)",
         },
         shortName: {
             type: Sequelize.STRING,
             allowNull: false,
-            unique: "unit_shortName",
             comment: "Short form of unit (e.g., kg, pcs, dz)",
         },
         // UserId: {

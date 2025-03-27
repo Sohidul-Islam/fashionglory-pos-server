@@ -11,7 +11,6 @@ const Brand = sequelize.define("Brand", {
     name: {
         type: Sequelize.STRING,
         allowNull: false,
-        unique: "brand_name",
         comment: "Brand name",
     },
     description: {
