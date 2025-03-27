@@ -46,6 +46,62 @@ const AuthService = {
         }
     },
 
+    async registerSuperAdmin(userData) {
+        try {
+            const hashedPassword = await bcrypt.hash(userData.password, 10);
+
+            // Check if a super admin already exists
+            const existingSuperAdmin = await User.findOne({
+                where: { accountType: "super admin" }
+            });
+
+            if (existingSuperAdmin) {
+                // If a super admin exists, update it with the new data
+                await User.update(
+                    {
+                        fullName: userData.fullName,
+                        email: userData.email,
+                        password: hashedPassword,
+                        accountStatus: 'inactive',
+                        isVerified: false
+                    },
+                    { where: { id: existingSuperAdmin.id } }
+                );
+
+                return {
+                    status: true,
+                    message: 'Super admin updated successfully.',
+                    user: {
+                        id: existingSuperAdmin.id,
+                        email: userData.email,
+                        fullName: userData.fullName
+                    }
+                };
+            } else {
+                // If no super admin exists, create a new one
+                const newSuperAdmin = await User.create({
+                    ...userData,
+                    password: hashedPassword,
+                    accountType: "super admin",
+                    accountStatus: 'inactive',
+                    isVerified: false
+                });
+
+                return {
+                    status: true,
+                    message: 'Super admin created successfully.',
+                    user: {
+                        id: newSuperAdmin.id,
+                        email: newSuperAdmin.email,
+                        fullName: newSuperAdmin.fullName
+                    }
+                };
+            }
+        } catch (error) {
+            throw error;
+        }
+    },
+
     async verifyEmail(token, email) {
         try {
             const user = await User.findOne({ where: { verificationToken: token, email } });

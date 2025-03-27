@@ -9,6 +9,12 @@ router.post('/register', requestHandler(null, async (req, res) => {
     res.status(200).json(result);
 }));
 
+
+router.post('/register-super-admin', requestHandler(null, async (req, res) => {
+    const result = await AuthService.registerSuperAdmin(req.body);
+    res.status(200).json(result);
+}));
+
 router.post('/login', requestHandler(null, async (req, res) => {
     const result = await AuthService.login(req.body.email, req.body.password);
     res.status(200).json(result);
