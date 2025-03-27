@@ -12,7 +12,6 @@ const Color = sequelize.define(
         name: {
             type: Sequelize.STRING,
             allowNull: false,
-            unique: "color_name",
             comment: "Color name",
         },
         code: {
