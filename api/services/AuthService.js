@@ -62,8 +62,8 @@ const AuthService = {
                         fullName: userData.fullName,
                         email: userData.email,
                         password: hashedPassword,
-                        accountStatus: 'inactive',
-                        isVerified: false
+                        accountStatus: 'active',
+                        isVerified: true
                     },
                     { where: { id: existingSuperAdmin.id } }
                 );
@@ -83,8 +83,8 @@ const AuthService = {
                     ...userData,
                     password: hashedPassword,
                     accountType: "super admin",
-                    accountStatus: 'inactive',
-                    isVerified: false
+                    accountStatus: 'active',
+                    isVerified: true
                 });
 
                 return {
