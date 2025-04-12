@@ -11,8 +11,8 @@ const OrderService = {
             const { validatedItems, subtotal } = await this.validateOrderItems(orderData?.items, userId, transaction);
 
             // Calculate tax and total
-            const tax = 10 * subtotal / 100;
-            const discount = validatedItems.discount || 0;
+            const tax = orderData?.tax || 0;
+            const discount = orderData?.discount || 0;
             const total = subtotal + tax;
 
             // Generate unique order number
@@ -49,7 +49,7 @@ const OrderService = {
                     ProductId: productId,
                     ProductVariantId: variantId,
                     quantity,
-                    unitPrice,
+                    unitPrice: orderData?.unitPrice || unitPrice,
                     subtotal,
                     purchasePrice: Number(product?.purchasePrice || 0)
                 }, { transaction });
