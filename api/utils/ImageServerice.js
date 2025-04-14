@@ -21,7 +21,7 @@ const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
     limits: {
-        fileSize: 2 * 1024 * 1024, // 2MB limit
+        fileSize: 30 * 1024 * 1024, // 2MB limit
     }
 });
 
@@ -31,7 +31,7 @@ class ImageUploadHelper {
             const {
                 width = 800,        // Default width
                 height = null,      // Maintain aspect ratio by default
-                quality = 80,       // Default quality
+                quality = 10,       // Default quality
                 format = 'webp',    // Default format
                 user
             } = options;
